@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portfolio Tracker</title>
+  <meta name="description" content="A steady view of what you own — an NSE portfolio tracker with risk built in.">
+
+  <!-- Fonts: Bricolage Grotesque (display + figures), Inter (UI), IBM Plex Mono (data) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;450;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- ========================= TOP BAR ========================= -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true">
+        <!-- a steady horizon / plumb line -->
+        <svg viewBox="0 0 32 32" width="30" height="30" fill="none">
+          <circle cx="16" cy="16" r="15" stroke="currentColor" stroke-width="1.4" opacity=".35"/>
+          <path d="M16 3v18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <circle cx="16" cy="24" r="3.1" fill="currentColor"/>
+          <path d="M7 16h18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".5"/>
+        </svg>
+      </span>
+      <span class="brand__tag">A steady view of what you own</span>
+    </div>
+
+    <div class="topbar__right">
+      <div class="market-ticker" id="marketTicker" aria-label="Live market indices"></div>
+      <button class="btn btn--primary" id="addBtn">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Add holding
+      </button>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- ========================= HERO ========================= -->
+    <section class="hero" aria-labelledby="heroLabel">
+      <div class="hero__left">
+        <p class="eyebrow" id="heroLabel">Portfolio value <span class="eyebrow__market" id="heroMarket"></span></p>
+        <div class="hero__value">
+          <span class="hero__cur">₹</span><span class="hero__num tnum" id="heroValue">0</span>
+        </div>
+        <div class="hero__meta">
+          <span class="chip" id="heroDay"></span>
+          <span class="hero__sep" aria-hidden="true">·</span>
+          <span class="hero__total" id="heroTotal"></span>
+        </div>
+      </div>
+      <div class="hero__right">
+        <div class="spark" id="spark" aria-label="Portfolio value trend, last 30 sessions"></div>
+        <p class="spark__cap">30-session trend</p>
+      </div>
+    </section>
+
+    <!-- ========================= STAT STRIP ========================= -->
+    <section class="strip" id="statStrip" aria-label="Portfolio summary metrics"></section>
+
+    <!-- ========================= ALLOCATION RIBBON (signature) ========================= -->
+    <section class="panel ribbon-panel" aria-labelledby="allocLabel">
+      <div class="panel__head">
+        <div>
+          <h2 class="panel__title" id="allocLabel">Allocation</h2>
+          <p class="panel__sub">Everything you hold, read as one band — by market value</p>
+        </div>
+        <span class="panel__hint tnum" id="ribbonTotal"></span>
+      </div>
+      <div class="ribbon" id="ribbon" role="img" aria-label="Portfolio allocation by holding"></div>
+      <div class="ribbon__legend" id="ribbonLegend"></div>
+    </section>
+
+    <!-- ========================= HOLDINGS + SIDE ========================= -->
+    <div class="columns">
+      <!-- Holdings table -->
+      <section class="panel" aria-labelledby="holdLabel">
+        <div class="panel__head">
+          <div>
+            <h2 class="panel__title" id="holdLabel">Holdings</h2>
+            <p class="panel__sub" id="holdCount">—</p>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="tbl" id="holdingsTable">
+            <thead>
+              <tr>
+                <th class="tbl__l">Stock</th>
+                <th>Qty</th>
+                <th>Avg cost</th>
+                <th>LTP</th>
+                <th>Invested</th>
+                <th>Market value</th>
+                <th>P&amp;L</th>
+                <th>Return</th>
+                <th class="tbl__c">·</th>
+              </tr>
+            </thead>
+            <tbody id="holdingsBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="holdingsEmpty" hidden>
+          <div class="empty__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+          </div>
+          <p class="empty__title">No holdings yet</p>
+          <p class="empty__sub">Add your first NSE position to start tracking market value and returns.</p>
+          <button class="btn btn--ghost" id="addBtnEmpty">Add holding</button>
+        </div>
+      </section>
+
+      <!-- Side: sector donut + returns -->
+      <aside class="side">
+        <section class="panel" aria-labelledby="sectorLabel">
+          <div class="panel__head panel__head--tight">
+            <div>
+              <h2 class="panel__title" id="sectorLabel">Sector mix</h2>
+              <p class="panel__sub">Where your money sits</p>
+            </div>
+          </div>
+          <div class="donut-wrap">
+            <div class="donut" id="donut"></div>
+            <ul class="donut__legend" id="donutLegend"></ul>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="retLabel">
+          <div class="panel__head panel__head--tight">
+            <div>
+              <h2 class="panel__title" id="retLabel">Return by holding</h2>
+              <p class="panel__sub">Unrealised, since you bought</p>
+            </div>
+          </div>
+          <div class="returns" id="returns"></div>
+        </section>
+      </aside>
+    </div>
+
+    <!-- ========================= CLOSED POSITIONS ========================= -->
+    <section class="panel" aria-labelledby="closedLabel">
+      <div class="panel__head">
+        <div>
+          <h2 class="panel__title" id="closedLabel">Closed positions</h2>
+          <p class="panel__sub">Realised, booked history</p>
+        </div>
+        <span class="panel__hint tnum" id="closedTotal"></span>
+      </div>
+      <div class="table-scroll">
+        <table class="tbl tbl--closed" id="closedTable">
+          <thead>
+            <tr>
+              <th class="tbl__l">Stock</th>
+              <th>Qty</th>
+              <th>Buy</th>
+              <th>Sell</th>
+              <th>Booked P&amp;L</th>
+              <th class="tbl__r">Closed</th>
+            </tr>
+          </thead>
+          <tbody id="closedBody"></tbody>
+        </table>
+      </div>
+      <div class="empty empty--sm" id="closedEmpty" hidden>
+        <p class="empty__sub">Nothing sold yet. Booked profit and loss will show here.</p>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <span>Module 1 — Portfolio Tracking</span>
+      <span class="foot__mock" id="footMock"></span>
+    </footer>
+  </main>
+
+  <!-- ========================= ADD / EDIT MODAL ========================= -->
+  <div class="modal" id="formModal" hidden>
+    <div class="modal__scrim" data-close></div>
+    <div class="modal__card" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+      <div class="modal__head">
+        <div>
+          <h3 class="modal__title" id="formTitle">Add holding</h3>
+          <p class="modal__sub" id="formSub">Record a new position in your portfolio.</p>
+        </div>
+        <button class="icon-btn" data-close aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="holdingForm" novalidate>
+        <div class="field">
+          <label for="fTicker">Stock</label>
+          <div class="select-wrap">
+            <select id="fTicker" name="ticker"></select>
+            <svg class="select-caret" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+          <p class="err" data-err="ticker"></p>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="fQty" id="lblQty">Quantity</label>
+            <input id="fQty" name="quantity" type="number" min="1" step="1" inputmode="numeric" placeholder="0" class="tnum">
+            <p class="err" data-err="quantity"></p>
+          </div>
+          <div class="field">
+            <label for="fAvg" id="lblAvg">Avg cost (₹)</label>
+            <input id="fAvg" name="avgBuyPrice" type="number" min="0" step="0.05" inputmode="decimal" placeholder="0.00" class="tnum">
+            <p class="err" data-err="avgBuyPrice"></p>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="fDate" id="lblDate">Purchase date</label>
+          <input id="fDate" name="purchaseDate" type="date" class="tnum">
+          <p class="err" data-err="purchaseDate"></p>
+        </div>
+
+        <div class="form-preview" id="formPreview" hidden></div>
+
+        <div class="modal__actions">
+          <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn--primary" id="formSubmit">Add holding</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================= SELL MODAL ========================= -->
+  <div class="modal" id="sellModal" hidden>
+    <div class="modal__scrim" data-close-sell></div>
+    <div class="modal__card modal__card--sm" role="dialog" aria-modal="true" aria-labelledby="sellTitle">
+      <div class="modal__head">
+        <div>
+          <h3 class="modal__title" id="sellTitle">Sell</h3>
+          <p class="modal__sub" id="sellSub"></p>
+        </div>
+        <button class="icon-btn" data-close-sell aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="sellForm" novalidate>
+        <div class="field-row">
+          <div class="field">
+            <label for="sQty">Quantity</label>
+            <input id="sQty" name="quantity" type="number" min="1" step="1" inputmode="numeric" class="tnum">
+            <p class="err" data-err="sQty"></p>
+          </div>
+          <div class="field">
+            <label for="sPrice">Sell price (₹)</label>
+            <input id="sPrice" name="sellPrice" type="number" min="0" step="0.05" inputmode="decimal" class="tnum">
+            <p class="err" data-err="sPrice"></p>
+          </div>
+        </div>
+
+        <div class="sell-preview">
+          <span>Booked P&amp;L</span>
+          <span class="tnum" id="sellPreview">—</span>
+        </div>
+
+        <div class="modal__actions">
+          <button type="button" class="btn btn--ghost" data-close-sell>Cancel</button>
+          <button type="submit" class="btn btn--sell" id="sellSubmit">Book sale</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
