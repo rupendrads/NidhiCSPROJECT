@@ -18,8 +18,9 @@ window.APP_CONFIG = {
   },
 
   /* While true, the app runs entirely on in-memory mock data (see app.js).
-     Set to false once the endpoints below are live. */
-  useMock: true,
+     Set to false once the endpoints below are live.
+     NOTE: when false, the Flask backend must be running (python app.py). */
+  useMock: false,
 
   /* The backend that will eventually serve real data. */
   server: {
@@ -42,6 +43,8 @@ window.APP_CONFIG = {
     quote:            "/quote/:ticker",        // GET last traded price
     portfolioSummary: "/portfolio/summary",    // GET totals + volatility + sharpe
     closedPositions:  "/portfolio/closed",     // GET realised / booked history
-    tickers:          "/tickers"               // GET valid NSE symbols for the form
+    tickers:          "/tickers",              // GET valid NSE symbols for the form
+    history:          "/history/:ticker",      // GET daily (1d) close prices — Module 2
+    backtest:         "/backtest"              // POST run an SMA-crossover backtest — Module 2
   }
 };

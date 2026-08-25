@@ -171,8 +171,117 @@
       </div>
     </section>
 
+    <!-- ========================= STRATEGY BACKTEST (Module 2) ========================= -->
+    <section class="panel bt-panel" id="backtestPanel" aria-labelledby="btLabel">
+      <button type="button" class="bt-toggle" id="btToggle" aria-expanded="false" aria-controls="btBody">
+        <span class="bt-toggle__lead">
+          <span class="bt-toggle__ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-5 3 3 5-7"/></svg>
+          </span>
+          <span class="bt-toggle__txt">
+            <span class="panel__title" id="btLabel">Strategy backtest</span>
+            <span class="panel__sub">Test an SMA crossover against buy-and-hold on NSE daily prices</span>
+          </span>
+        </span>
+        <span class="bt-toggle__cta">
+          <span class="bt-toggle__hint" id="btToggleHint">Open</span>
+          <span class="bt-toggle__chev" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </span>
+        </span>
+      </button>
+
+      <div class="bt-body" id="btBody" hidden>
+        <form id="btForm" class="bt-form" novalidate>
+          <div class="field">
+            <label for="btTicker">Stock</label>
+            <input id="btTicker" list="btTickerList" type="text" placeholder="e.g. RELIANCE" autocomplete="off" spellcheck="false">
+            <datalist id="btTickerList"></datalist>
+            <p class="err" data-err="ticker"></p>
+          </div>
+          <div class="field">
+            <label for="btShort">Short SMA</label>
+            <input id="btShort" type="number" min="2" step="1" value="20" class="tnum">
+            <p class="err" data-err="short"></p>
+          </div>
+          <div class="field">
+            <label for="btLong">Long SMA</label>
+            <input id="btLong" type="number" min="3" step="1" value="50" class="tnum">
+            <p class="err" data-err="long"></p>
+          </div>
+          <div class="field">
+            <label for="btCapital">Capital (₹)</label>
+            <input id="btCapital" type="number" min="1" step="1000" value="100000" class="tnum">
+            <p class="err" data-err="capital"></p>
+          </div>
+          <div class="field">
+            <label for="btFrom">From</label>
+            <input id="btFrom" type="date" class="tnum">
+          </div>
+          <div class="field">
+            <label for="btTo">To</label>
+            <input id="btTo" type="date" class="tnum">
+          </div>
+          <div class="bt-form__run">
+            <button type="submit" class="btn btn--primary" id="btRun">Run backtest</button>
+          </div>
+        </form>
+
+        <div class="bt-presets" id="btPresets" aria-label="Quick presets">
+          <span class="bt-presets__lbl">Presets</span>
+          <button type="button" class="bt-chip" data-preset="20,50">Golden 20 / 50</button>
+          <button type="button" class="bt-chip" data-preset="50,200">Classic 50 / 200</button>
+          <button type="button" class="bt-chip" data-preset="10,30">Fast 10 / 30</button>
+        </div>
+
+        <p class="bt-note" id="btNote" hidden></p>
+
+        <div class="bt-empty" id="btEmpty">
+          <div class="empty__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-5 3 3 5-7"/></svg>
+          </div>
+          <p class="empty__title">Run a backtest</p>
+          <p class="empty__sub">Pick a stock and parameters, then run it to see whether the SMA strategy would have beaten simply holding.</p>
+        </div>
+
+        <div class="bt-results" id="btResults" hidden>
+          <div class="bt-recap" id="btRecap"></div>
+          <div class="bt-verdict" id="btVerdict"></div>
+          <div class="bt-compare" id="btCompare"></div>
+          <div class="bt-stats" id="btStats"></div>
+          <div class="bt-chart">
+            <div class="bt-chart__head">
+              <span class="bt-chart__title">Portfolio value over time</span>
+              <div class="bt-legend" id="btLegend"></div>
+            </div>
+            <div class="bt-chart__svg" id="btChart"></div>
+          </div>
+          <div class="bt-trades">
+            <div class="bt-trades__head">
+              <span class="bt-chart__title">Trade log</span>
+              <span class="panel__sub" id="btTradesCount"></span>
+            </div>
+            <div class="table-scroll">
+              <table class="tbl" id="btTradesTable">
+                <thead>
+                  <tr>
+                    <th class="tbl__l">Trade date</th>
+                    <th>Action</th>
+                    <th>Price</th>
+                    <th>Shares</th>
+                    <th class="tbl__r">Profit</th>
+                  </tr>
+                </thead>
+                <tbody id="btTradesBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <footer class="foot">
-      <span>Module 1 — Portfolio Tracking</span>
+      <span>Module 1 — Portfolio Tracking · Module 2 — Strategy Backtesting</span>
       <span class="foot__mock" id="footMock"></span>
     </footer>
   </main>
@@ -194,10 +303,8 @@
       <form id="holdingForm" novalidate>
         <div class="field">
           <label for="fTicker">Stock</label>
-          <div class="select-wrap">
-            <select id="fTicker" name="ticker"></select>
-            <svg class="select-caret" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-          </div>
+          <input id="fTicker" name="ticker" list="fTickerList" type="text" placeholder="Type a symbol, e.g. RELIANCE" autocomplete="off" spellcheck="false">
+          <datalist id="fTickerList"></datalist>
           <p class="err" data-err="ticker"></p>
         </div>
 
@@ -273,5 +380,6 @@
 
   <script src="config.js"></script>
   <script src="app.js"></script>
+  <script src="backtest.js"></script>
 </body>
 </html>

@@ -1,0 +1,10 @@
+# Never commit the database or any secrets
+portfolio.db
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Zerodha secrets / tokens (also ignored at the repo root)
+../zerodha/zerodhaConfig.json
+../zerodha/zerodhaAccessToken.json

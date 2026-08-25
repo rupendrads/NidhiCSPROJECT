@@ -1,0 +1,23 @@
+# ===== SECRETS — never commit these =====
+# Zerodha API key/secret, password, TOTP seed
+zerodha/zerodhaConfig.json
+# daily access token
+zerodha/zerodhaAccessToken.json
+# extra safety: any token/secret json anywhere under zerodha/
+zerodha/*Token*.json
+zerodha/*Config*.json
+# ...but DO commit the empty template(s) so the layout is documented
+!zerodha/*.example.json
+
+# ===== database (personal data, regenerated locally) =====
+backend/portfolio.db
+
+# ===== Python =====
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# ===== misc =====
+backend/server.log
+.DS_Store

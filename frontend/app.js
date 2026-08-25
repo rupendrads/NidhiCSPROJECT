@@ -23,7 +23,7 @@
        GET  CFG.endpoints.portfolioSummary  → state.summary (volatility, sharpe)
        GET  CFG.endpoints.tickers           → NSE_UNIVERSE
      ========================================================================= */
-  const NSE_UNIVERSE = {
+  let NSE_UNIVERSE = {
     RELIANCE:{ name:"Reliance Industries", sector:"Energy",   ltp:2872.40 },
     TCS:     { name:"Tata Consultancy",    sector:"IT",       ltp:3910.25 },
     INFY:    { name:"Infosys",             sector:"IT",       ltp:1585.60 },
@@ -81,6 +81,65 @@
   const quote = (tk) => (NSE_UNIVERSE[tk] ? NSE_UNIVERSE[tk].ltp : 0);
   const sectorOf = (tk) => (NSE_UNIVERSE[tk] ? NSE_UNIVERSE[tk].sector : "Other");
   const nameOf = (tk) => (NSE_UNIVERSE[tk] ? NSE_UNIVERSE[tk].name : tk);
+
+  /* =========================================================================
+     BACKEND API  (used only when CFG.useMock === false)
+     Talks to the Flask server described in config.js. Every method returns a
+     Promise. On any failure the UI shows a clear message instead of breaking.
+     ========================================================================= */
+  const API = {
+    ep: CFG.endpoints,
+    async _fetch(path, opts) {
+      const res = await fetch(CFG.baseUrl + path,
+        Object.assign({ headers: { "Content-Type": "application/json" } }, opts));
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || ("Request failed (" + res.status + ")"));
+      return body;
+    },
+    getHoldings()        { return this._fetch(this.ep.holdings); },
+    getClosed()          { return this._fetch(this.ep.closedPositions); },
+    getSummary()         { return this._fetch(this.ep.portfolioSummary); },
+    getTickers()         { return this._fetch(this.ep.tickers); },
+    addHolding(p)        { return this._fetch(this.ep.holdings, { method:"POST", body:JSON.stringify(p) }); },
+    updateHolding(id, p) { return this._fetch(this.ep.holdingById.replace(":id", id), { method:"PUT", body:JSON.stringify(p) }); },
+    deleteHolding(id)    { return this._fetch(this.ep.holdingById.replace(":id", id), { method:"DELETE" }); },
+    sellHolding(id, p)   { return this._fetch(this.ep.sellHolding.replace(":id", id), { method:"POST", body:JSON.stringify(p) }); }
+  };
+
+  /* Load everything from the backend into `state` + `NSE_UNIVERSE`, then render.
+     In mock mode the data is already in `state`, so we just render. */
+  async function loadData() {
+    if (CFG.useMock) { render(); return; }
+    try {
+      const [tickers, holdings, closed, summary] = await Promise.all([
+        API.getTickers(), API.getHoldings(), API.getClosed(), API.getSummary()
+      ]);
+      // Rebuild the stock universe (name + sector) from the backend, then layer
+      // the live traded prices from the holdings on top.
+      NSE_UNIVERSE = {};
+      tickers.forEach((t) => { NSE_UNIVERSE[t.ticker] = { name:t.name, sector:t.sector, ltp:0 }; });
+      holdings.forEach((h) => { NSE_UNIVERSE[h.ticker] = { name:h.name || h.ticker, sector:h.sector || "Other", ltp:h.ltp }; });
+
+      state.holdings = holdings.map((h) => ({
+        id:h.id, ticker:h.ticker, quantity:h.quantity, avgBuyPrice:h.avgBuyPrice, purchaseDate:h.purchaseDate
+      }));
+      state.closed = closed.map((c) => ({
+        id:c.id, ticker:c.ticker, quantity:c.quantity, avgBuyPrice:c.avgBuyPrice, sellPrice:c.sellPrice, closeDate:c.closeDate
+      }));
+      state.summary = {
+        annualisedVolatility: summary.annualisedVolatility,
+        sharpeRatio: summary.sharpeRatio,
+        dayChange: summary.dayChange,
+        dayChangePct: summary.dayChangePct
+      };
+      fillTickerOptions();
+      render();
+    } catch (e) {
+      console.error(e);
+      alert("Could not reach the backend server.\n\n" + e.message +
+            "\n\nIs it running?  (python app.py)\nOr set useMock:true in config.js to use demo data.");
+    }
+  }
 
   /* =========================== formatters =========================== */
   const nf2 = new Intl.NumberFormat(LOCALE, { minimumFractionDigits:2, maximumFractionDigits:2 });
@@ -421,11 +480,29 @@
      ========================================================================= */
   const today = () => new Date().toISOString().slice(0, 10);
 
+  // Autocomplete for the Add form: nothing is listed until the user types; then we
+  // show only the symbols that START WITH what they typed (max 10), not the whole
+  // universe. `_tickerSorted` is a cached, sorted key list rebuilt when data reloads.
+  let _tickerSorted = null;
+  function tickerList() {
+    if (!_tickerSorted) _tickerSorted = Object.keys(NSE_UNIVERSE).sort();
+    return _tickerSorted;
+  }
   function fillTickerOptions() {
-    const sel = $("#fTicker");
-    sel.innerHTML = `<option value="">Select a stock…</option>` +
-      Object.keys(NSE_UNIVERSE).sort().map((tk) =>
-        `<option value="${tk}">${tk} — ${NSE_UNIVERSE[tk].name}</option>`).join("");
+    _tickerSorted = null;                 // invalidate cache (NSE_UNIVERSE may have changed)
+    const dl = $("#fTickerList");
+    if (dl) dl.innerHTML = "";            // start empty — no giant list on open
+  }
+  function updateTickerSuggestions() {
+    const dl = $("#fTickerList");
+    if (!dl) return;
+    const q = $("#fTicker").value.trim().toUpperCase();
+    if (!q) { dl.innerHTML = ""; return; }
+    const matches = [];
+    for (const tk of tickerList()) {
+      if (tk.startsWith(q)) { matches.push(tk); if (matches.length >= 10) break; }
+    }
+    dl.innerHTML = matches.map((tk) => `<option value="${tk}">${NSE_UNIVERSE[tk].name}</option>`).join("");
   }
 
   function toggleExpand(id) {
@@ -495,9 +572,10 @@
 
   function validateHolding() {
     const errs = {};
-    const tk = $("#fTicker").value;
+    const tk = $("#fTicker").value.trim().toUpperCase();
     const qtyRaw = $("#fQty").value, avgRaw = $("#fAvg").value, date = $("#fDate").value;
     if (!tk) errs.ticker = "Choose a stock.";
+    else if (!NSE_UNIVERSE[tk]) errs.ticker = "Pick a valid NSE symbol from the list.";
     const qty = Number(qtyRaw);
     if (qtyRaw === "" || !Number.isInteger(qty) || qty <= 0) errs.quantity = "Whole number greater than 0.";
     const avg = Number(avgRaw);
@@ -507,20 +585,36 @@
     return errs;
   }
 
-  function submitHolding(e) {
+  async function submitHolding(e) {
     e.preventDefault();
     const errs = validateHolding();
     paintErrors($("#holdingForm"), errs, { ticker:"#fTicker", quantity:"#fQty", avgBuyPrice:"#fAvg", purchaseDate:"#fDate" });
     if (Object.keys(errs).length) return;
 
-    const tk = $("#fTicker").value, qty = parseInt($("#fQty").value, 10), avg = Number($("#fAvg").value), date = $("#fDate").value;
+    const tk = $("#fTicker").value.trim().toUpperCase(), qty = parseInt($("#fQty").value, 10), avg = Number($("#fAvg").value), date = $("#fDate").value;
     const m = state.ui.modal;
+
+    // ---- LIVE: talk to the backend, then reload from it ----
+    if (!CFG.useMock) {
+      try {
+        if (m.mode === "add") {
+          await API.addHolding({ ticker:tk, quantity:qty, avgBuyPrice:avg, purchaseDate:date });
+        } else {
+          const h = state.holdings.find((x) => x.id === m.id);
+          const merged = mergeLot({ quantity:h.quantity, avgBuyPrice:h.avgBuyPrice, purchaseDate:h.purchaseDate }, qty, avg, date);
+          await API.updateHolding(m.id, { quantity:merged.quantity, avgBuyPrice:merged.avgBuyPrice, purchaseDate:merged.purchaseDate });
+        }
+        hideModal("#formModal");
+        await loadData();
+      } catch (err) { alert(err.message); }
+      return;
+    }
+
+    // ---- MOCK path ----
     if (m.mode === "add") {
-      // ---- MOCK: POST CFG.endpoints.holdings ----
       state.holdings.push({ id:nextId(), ticker:tk, quantity:qty, avgBuyPrice:avg, purchaseDate:date });
     } else {
       // Add a lot: re-derive avg cost, total quantity and latest date.
-      // ---- MOCK: POST CFG.endpoints.holdings (add lot) → PUT CFG.endpoints.holdingById(id) ----
       const h = state.holdings.find((x) => x.id === m.id);
       if (h) {
         const merged = mergeLot({ quantity:h.quantity, avgBuyPrice:h.avgBuyPrice, purchaseDate:h.purchaseDate }, qty, avg, date);
@@ -531,11 +625,17 @@
     render();
   }
 
-  function deleteHolding(id) {
+  async function deleteHolding(id) {
     const h = state.holdings.find((x) => x.id === id);
     if (!h) return;
     if (!window.confirm(`Remove ${h.ticker} from your portfolio? This corrects an entry — it does not book a sale.`)) return;
-    // ---- MOCK: DELETE CFG.endpoints.holdingById(id) ----
+
+    if (!CFG.useMock) {
+      try { await API.deleteHolding(id); await loadData(); }
+      catch (err) { alert(err.message); }
+      return;
+    }
+    // ---- MOCK ----
     state.holdings = state.holdings.filter((x) => x.id !== id);
     render();
   }
@@ -578,14 +678,20 @@
     return errs;
   }
 
-  function submitSell(e) {
+  async function submitSell(e) {
     e.preventDefault();
     const errs = validateSell();
     paintErrors($("#sellForm"), errs, { sQty:"#sQty", sPrice:"#sPrice" });
     if (Object.keys(errs).length) return;
 
     const s = state.ui.sell, qty = parseInt($("#sQty").value, 10), price = Number($("#sPrice").value);
-    // ---- MOCK: POST CFG.endpoints.sellHolding(id) { quantity, sellPrice } ----
+
+    if (!CFG.useMock) {
+      try { await API.sellHolding(s.id, { quantity:qty, sellPrice:price }); hideModal("#sellModal"); await loadData(); }
+      catch (err) { alert(err.message); }
+      return;
+    }
+    // ---- MOCK ----
     const h = state.holdings.find((x) => x.id === s.id);
     if (h) {
       h.quantity -= qty;
@@ -632,7 +738,6 @@
   function init() {
     fillTickerOptions();
     renderMarket();
-    render();
 
     $("#addBtn").addEventListener("click", openAdd);
     $("#addBtnEmpty").addEventListener("click", openAdd);
@@ -649,6 +754,7 @@
 
     // form modal
     $("#holdingForm").addEventListener("submit", submitHolding);
+    $("#fTicker").addEventListener("input", updateTickerSuggestions);
     ["#fQty", "#fAvg", "#fDate"].forEach((s) => $(s).addEventListener("input", updateFormPreview));
     document.querySelectorAll("[data-close]").forEach((n) => n.addEventListener("click", () => hideModal("#formModal")));
     // sell modal
@@ -663,6 +769,9 @@
       if (!$("#formModal").hidden) hideModal("#formModal");
       if (!$("#sellModal").hidden) hideModal("#sellModal");
     });
+
+    // Load data (mock: already in `state`; live: fetched from the backend) and render.
+    loadData();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
