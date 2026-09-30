@@ -45,6 +45,10 @@ window.APP_CONFIG = {
     closedPositions:  "/portfolio/closed",     // GET realised / booked history
     tickers:          "/tickers",              // GET valid NSE symbols for the form
     history:          "/history/:ticker",      // GET daily (1d) close prices — Module 2
-    backtest:         "/backtest"              // POST run an SMA-crossover backtest — Module 2
+    backtest:         "/backtest",             // POST run an SMA-crossover backtest — Module 2
+    register:         "/auth/register",        // POST { username, password } -> { token, user }
+    login:            "/auth/login",           // POST { username, password } -> { token, user }
+    me:               "/auth/me",              // GET  current user (needs Authorization: Bearer)
+    changePassword:   "/auth/change-password"  // POST { currentPassword, newPassword }
   }
 };

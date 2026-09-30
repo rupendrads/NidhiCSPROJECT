@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Write-up Review — Portfolio Tracker NEA</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+  :root{
+    --bg:#f6f4ef; --ink:#17323a; --muted:#5d6b70; --line:#e2ddd2; --card:#fff;
+    --teal:#1f5f6b; --gold:#b8892b; --red:#b3402f; --green:#2e7d4f; --amber:#a86a00;
+    --red-bg:#fbeae7; --green-bg:#e6f4ec; --amber-bg:#fff3dd; --blue-bg:#e8f1f3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,"Segoe UI",Inter,Roboto,sans-serif;padding:0 20px 60px}
+  .wrap{max-width:1080px;margin:0 auto}
+  header{padding:36px 0 18px;border-bottom:1px solid var(--line);margin-bottom:28px}
+  header h1{margin:0 0 6px;font-size:30px;letter-spacing:-.01em}
+  header p{margin:0;color:var(--muted)}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:22px 0 8px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .tile b{display:block;font-size:28px;line-height:1.1}
+  .tile span{color:var(--muted);font-size:13px}
+  h2{font-size:22px;margin:40px 0 10px;padding-top:8px;border-top:3px solid var(--teal);display:inline-block}
+  h3{font-size:16px;margin:22px 0 6px}
+  p.lead{color:var(--muted);margin-top:0}
+  table{border-collapse:collapse;width:100%;background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:14px}
+  th,td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+  th{background:#efece4;font-weight:600}
+  tr:last-child td{border-bottom:0}
+  .tbl{overflow-x:auto;margin:10px 0}
+  .badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .b-wrong{background:var(--red-bg);color:var(--red)}
+  .b-fixed{background:var(--green-bg);color:var(--green)}
+  .b-added{background:var(--blue-bg);color:var(--teal)}
+  .b-todo{background:var(--amber-bg);color:var(--amber)}
+  .issue{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--red);border-radius:8px;padding:14px 18px;margin:12px 0}
+  .issue h3{margin:0 0 6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .issue .where{color:var(--muted);font-size:13px}
+  .ba{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  @media(max-width:700px){.ba{grid-template-columns:1fr}}
+  .ba div{border-radius:6px;padding:10px 12px;font-size:14px}
+  .ba .before{background:var(--red-bg)}
+  .ba .after{background:var(--green-bg)}
+  .ba small{display:block;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em;margin-bottom:4px}
+  .note{background:var(--amber-bg);border-left:4px solid var(--amber);padding:10px 14px;border-radius:6px;margin:10px 0;font-size:14px}
+  /* Carbon-style code windows */
+  .carbon{background:#1a1b26;border-radius:10px;box-shadow:0 18px 40px rgba(0,0,0,.35);margin:16px 0;overflow:hidden}
+  .carbon .bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#16161e}
+  .carbon .bar i{width:12px;height:12px;border-radius:50%;display:inline-block}
+  .carbon .bar i:nth-child(1){background:#ff5f56}.carbon .bar i:nth-child(2){background:#ffbd2e}.carbon .bar i:nth-child(3){background:#27c93f}
+  .carbon .bar span{margin-left:auto;color:#787c99;font:12px/1 ui-monospace,Menlo,Consolas,monospace}
+  .carbon pre{margin:0;padding:18px 22px;overflow-x:auto;font:13.5px/1.6 "JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;background:transparent}
+  .carbon code{background:transparent!important;padding:0}
+  figure{margin:16px 0;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px}
+  figure img{display:block;max-width:100%;height:auto;border-radius:4px;margin:0 auto}
+  figure.dark img{background:#0f1f2b}
+  figcaption{font-size:13px;color:var(--muted);margin-top:8px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:700px){.grid2{grid-template-columns:1fr}}
+  ul.check{list-style:none;padding:0}
+  ul.check li{padding:8px 0 8px 30px;position:relative;border-bottom:1px dashed var(--line)}
+  ul.check li:before{content:"☐";position:absolute;left:4px;top:6px;color:var(--amber);font-size:18px}
+  code.k{background:#efece4;padding:1px 5px;border-radius:4px;font-size:.92em}
+  .files li{margin:4px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Write-up Review — Portfolio Tracker &amp; SMA Backtesting NEA</h1>
+  <p>Comparison of <code class="k">Project_Writeup_BEFORE_EDIT.docx</code> and <code class="k">Project_Writeup.docx</code>, the corrections made, the parts that were missing and have now been built, and what is still needed from you. Generated 30 Sep 2026.</p>
+  <div class="tiles">
+    <div class="tile"><b>13</b><span>problems found &amp; corrected</span></div>
+    <div class="tile"><b>4</b><span>appendices (E–H) merged in</span></div>
+    <div class="tile"><b>+214</b><span>paragraphs added to the base file</span></div>
+    <div class="tile"><b>5</b><span>figures now embedded (was 3)</span></div>
+    <div class="tile"><b>16</b><span>build challenges documented</span></div>
+    <div class="tile"><b>1</b><span>feature built: accounts &amp; login</span></div>
+    <div class="tile"><b>8</b><span>items still needed from you</span></div>
+  </div>
+</header>
+
+<!-- ============================================================ -->
+<h2>1. Which file is which</h2>
+<p class="lead">The file names are misleading. By timestamp and content, the "BEFORE_EDIT" file is actually the newer, more developed one.</p>
+<div class="tbl"><table>
+<tr><th>File</th><th>Modified</th><th>What it really is</th></tr>
+<tr><td><code class="k">Project_Writeup.docx</code></td><td>27 Sep 2026</td><td>The <b>old generated scaffold</b> (still had the "How to use this document" box, mark-band notes, and a <i>[YOUR INPUT]</i> where the interview should be) <b>plus Appendices E–H</b> and the dashboard screenshot.</td></tr>
+<tr><td><code class="k">Project_Writeup_BEFORE_EDIT.docx</code></td><td>30 Sep 2026</td><td>The <b>student-edited version</b>: title page, table of contents, real interview with Krish, sub-problem table, architecture table, login design, worked examples, algorithms (f) sell and (g) trade statistics, error-response contract, wireframes, hand-computable backtest, 17 post-dev tests, traceability matrix — but <b>no Appendices E–H</b>.</td></tr>
+<tr><td><code class="k">Project_Writeup_MERGED.docx</code></td><td>new</td><td><b>The result:</b> BEFORE_EDIT as the base, every problem below corrected, Appendices E–H and the screenshot merged in.</td></tr>
+</table></div>
+<p>Sections that were identical in both files and were left untouched: §1.1, §1.2 (body), §1.4, §1.5, §1.8, all of §3, all of §4, Appendices A and D.</p>
+
+<!-- ============================================================ -->
+<h2>2. What was wrong — and how it was corrected</h2>
+<p class="lead">Each item below was wrong in <code class="k">Project_Writeup_BEFORE_EDIT.docx</code>. The correction has been applied in <code class="k">Project_Writeup_MERGED.docx</code>.</p>
+
+<div class="issue">
+  <h3><span class="badge b-wrong">was wrong</span><span class="badge b-fixed">fixed</span> Truncated section heading <span class="where">§1.2</span></h3>
+  <div class="ba">
+    <div class="before"><small>Before</small>1.2 Why the problem is amenable to a computational</div>
+    <div class="after"><small>After</small>1.2 Why the problem is amenable to a computational <b>solution</b></div>
+  </div>
+</div>
+
+<div class="issue">
+  <h3><span class="badge b-wrong">was wrong</span><span class="badge b-fixed">fixed</span> Says "Three tables" but lists four <span class="where">§2.3</span></h3>
+  <div class="ba">
+    <div class="before"><small>Before</small>"Persistent storage – SQLite (justified in §1.7). <b>Three</b> tables:" — followed by <code>users</code>, <code>holdings</code>, <code>closed_positions</code>, <code>instruments</code>.</div>
+    <div class="after"><small>After</small>"…<b>Four</b> tables:"</div>
+  </div>
+</div>
+
+<div class="issue">
+  <h3><span class="badge b-wrong">was wrong</span><span class="badge b-fixed">fixed</span> §1.6 contradicted the login design <span class="where">§1.6 vs §2.3 / §2.4 / §2.6</span></h3>
+  <div class="ba">
+    <div class="before"><small>Before</small>§1.6: "Single-user … <b>no multi-user accounts/authentication are needed</b>" — yet §2.3 adds a <code>users</code> table and <code>POST /api/login</code>, §2.4 validates username/password, and §2.6 has a login wireframe.</div>
+    <div class="after"><small>After</small>§1.6 now reads: "Single-machine desktop tool <b>with a lightweight local login</b>. Justified: … a simple username/password (§2.3, §2.4) keeps his data separate … but there are no cloud accounts, password-recovery flows or role permissions, which removes significant complexity."</div>
+  </div>
+  <div class="note" style="background:var(--green-bg);border-left-color:var(--green)"><b>Resolved — login is now built.</b> At review time the code had no login (three tables, no <code>/api/login</code>), so the design and the build disagreed. The accounts feature has since been implemented end to end (see section 7) and the write-up now documents it as Stage 6 (§3.8), so §1.6, §2.3, §2.4, §2.6 and §2.7.3 all describe something that exists.</div>
+</div>
+
+<div class="issue">
+  <h3><span class="badge b-wrong">was wrong</span><span class="badge b-fixed">fixed</span> Benchmark start contradicted the pseudocode, the worked example and the code <span class="where">§2.5 "Justified design choices"</span></h3>
+  <div class="ba">
+    <div class="before"><small>Before</small>"The buy-and-hold benchmark begins on <b>index longWindow</b>…" — but the pseudocode uses <code>close[0]</code>, §2.7.2 buys 100 shares on day 0, and <code>backtest.py</code> uses <code>closes[0]</code>.</div>
+    <div class="after"><small>After</small>"…buys on the <b>first day of the series (index 0)</b>, exactly as backtest.py does. Justified: it measures what the investor would have got by buying at the start of the window and doing nothing. Because the strategy cannot trade until both SMAs exist, this is a deliberately conservative comparison that slightly favours buy-and-hold."</div>
+  </div>
+  <div class="carbon"><div class="bar"><i></i><i></i><i></i><span>backend/backtest.py — the actual behaviour</span></div>
+<pre><code class="language-python"># Benchmark: buy on day 1, hold to the end.
+first_price  = closes[0]
+bench_shares = int(capital // first_price)
+bench_cash   = capital - bench_shares * first_price
+benchmark_curve = [
+    {"date": dates[i], "value": round(bench_cash + bench_shares * closes[i], 2)}
+    for i in range(len(closes))
+]
+benchmark_final = bench_cash + bench_shares * closes[-1]
+beat = final_value > benchmark_final          # SC7 verdict</code></pre></div>
+</div>
+
+<div class="issue">
+  <h3><span class="badge b-wrong">was wrong</span><span class="badge b-fixed">fixed</span> Stale cross-references after sections were renumbered <span class="where">§3.4, §3.6, §4.3, §2.8</span></h3>
+  <p>Algorithms moved from §2.4 → §2.5 and usability from §2.5 → §2.6 when the validation section was added, but later references were not updated.</p>
+  <div class="tbl"><table>
+    <tr><th>Where</th><th>Before</th><th>After</th></tr>
+    <tr><td>§3.4</td><td>"see 2.4d"</td><td>"see §2.5(d)"</td></tr>
+    <tr><td>§3.6</td><td>"(§2.4c)"</td><td>"(§2.5(c))"</td></tr>
+    <tr><td>§4.3</td><td>"usability feature from §2.5"</td><td>"…from §2.6"</td></tr>
+    <tr><td>§2.8 matrix</td><td>cited "2.3.1", which does not exist (§2.3 has only 2.3.2 and 2.3.3); SC labels didn't match §1.8 (e.g. "SC2 Weighted-average cost" vs "Value &amp; return match a hand calculation"); header still said "(check numbering vs Analysis)"</td><td>every row now points at real sections and uses the §1.8 wording; the existing references to §2.5(f) sell and §2.5(g) trade statistics are kept</td></tr>
+  </table></div>
+</div>
+
+<div class="issue">
+  <h3><span class="badge b-wrong">was wrong</span><span class="badge b-fixed">fixed</span> Paragraph in the wrong section <span class="where">§2.6 → §2.7</span></h3>
+  <div class="ba">
+    <div class="before"><small>Before</small>"Testing happens during development (iterative) and after (post-development)…" sat at the end of §2.6 under "PORTFOLIO SCREEN", before the §2.7 heading.</div>
+    <div class="after"><small>After</small>Moved to be the opening paragraph of §2.7 Test strategy.</div>
+  </div>
+</div>
+
+<div class="issue">
+  <h3><span class="badge b-wrong">was wrong</span><span class="badge b-fixed">fixed</span> Iterative-test stages did not match the development stages <span class="where">§2.7.1 vs §3</span></h3>
+  <div class="ba">
+    <div class="before"><small>Before</small>§2.7.1: stage 1 = SMA maths, stage 3 = database. §3: stage 1 = persistence, stage 3 = risk metrics, stage 5 = backtest. An examiner cross-reading would see two different plans.</div>
+    <div class="after"><small>After</small>§2.7.1 rows re-ordered to the §3 order (persistence → Zerodha → risk maths → front end → backtest → routes), each row keeping its test data and expected result.</div>
+  </div>
+</div>
+
+<div class="issue">
+  <h3><span class="badge b-wrong">was wrong</span><span class="badge b-fixed">fixed</span> Template placeholders left in the Design section <span class="where">§2.1.3, §2.6, §2.7.3</span></h3>
+  <div class="tbl"><table>
+    <tr><th>Where</th><th>Placeholder that was still there</th><th>Now says</th></tr>
+    <tr><td>§2.1.3</td><td>"[YOUR INPUT: one or two sentences on which module you'll build first and why…]"</td><td>Build order: persistence first (SC1, no network needed) → Zerodha → risk maths → front end → backtest, matching §2.7.1 and §3.</td></tr>
+    <tr><td>§2.6</td><td>"[YOUR INPUT: quote your stakeholder's actual feedback.]"</td><td>Quotes Krish's own words from the §1.3 interview: "please keep the screen simple and clean" / "it makes me anxious".</td></tr>
+    <tr><td>§2.7.3</td><td>"[Record user details and dates.]"</td><td>"The stakeholder session is recorded in §4.1 (T5) and §4.6."</td></tr>
+  </table></div>
+</div>
+
+<div class="issue">
+  <h3><span class="badge b-wrong">was wrong</span><span class="badge b-fixed">fixed</span> Figures without captions <span class="where">§2.5 flowchart, §2.6 wireframes</span></h3>
+  <div class="ba">
+    <div class="before"><small>Before</small>The backtest flowchart had only its heading "(h) Flowchart of the backtest request" and no caption explaining it; the wireframes were labelled only "LOGIN SCREEN:" / "PORTFOLIO SCREEN". The mark scheme rewards <i>annotated</i> evidence.</div>
+    <div class="after"><small>After</small>Figure 2.1 (flowchart, mapped to §2.7.3 error rows), Figure 2.2 (login wireframe → §2.4 rules), Figure 2.3 (portfolio wireframe → progressive-disclosure ordering).</div>
+  </div>
+</div>
+
+<div class="issue">
+  <h3><span class="badge b-wrong">was wrong</span><span class="badge b-fixed">fixed</span> Appendices B and C pointed outside the document <span class="where">§5</span></h3>
+  <div class="ba">
+    <div class="before"><small>Before</small>"see backend/RUN.md" and "see backend/BACKEND_OVERVIEW.md" — files an examiner does not have.</div>
+    <div class="after"><small>After</small>"see Appendix E (Prerequisites &amp; Setup)" and "see Appendix F (Functionalities &amp; API Reference)" — both now inside the document.</div>
+  </div>
+</div>
+
+<div class="issue">
+  <h3><span class="badge b-wrong">was wrong</span><span class="badge b-fixed">fixed</span> Stale duplicate heading left from the scaffold <span class="where">just before §2.7</span></h3>
+  <div class="ba">
+    <div class="before"><small>Before</small>An orphan heading "2.6 Test strategy &amp; test data" (the scaffold's old numbering) sat directly above the real "2.7 Test strategy and test data" heading, so the document showed two numbered headings for one section.</div>
+    <div class="after"><small>After</small>Removed; §2.6 is Usability, §2.7 is Test strategy.</div>
+  </div>
+</div>
+
+<div class="issue">
+  <h3><span class="badge b-wrong">was wrong</span><span class="badge b-fixed">fixed</span> Table of contents was out of date <span class="where">Contents page</span></h3>
+  <div class="ba">
+    <div class="before"><small>Before</small>The TOC still listed the scaffold's structure — "2.4 Algorithms", "2.5 Usability / interface design", "2.6 Test strategy &amp; test data", no 2.7/2.8, no Appendices E–H — with page numbers from the old file. Refreshing it also exposed a second problem: the four title-page lines, every cell of the §2.3.2 table and three long justification paragraphs (§2.3.2 "Justification: encapsulating…", §2.3.3 "Standardised error responses…", "Justification for architectural separation…") were formatted with <i>Heading</i> styles — as were the pseudocode lines of §2.5(f) sell and §2.5(g) trade statistics and the flowchart paragraph — so a refreshed TOC listed "NIDHI SAWANT", "Name", "closes", "delete holding", "else:", whole paragraphs and even the flowchart image as sections.</div>
+    <div class="after"><small>After</small>Title page now uses the Title/Subtitle styles, the §2.3.2 cells use body text (header row bold), the justification paragraphs are body text, the (f)/(g) pseudocode uses the document's Source Code style and (f)/(g)/(h) use the same sub-heading style as (a)–(e); the TOC was then refreshed in Word and lists only real headings, including 2.7, 2.8 and Appendices E–H.</div>
+  </div>
+</div>
+
+<div class="issue">
+  <h3><span class="badge b-wrong">was wrong</span><span class="badge b-fixed">fixed</span> Technical: duplicate bookmark IDs in the file <span class="where">word/document.xml</span></h3>
+  <p>The base file already contained duplicate bookmark ids (23, 37), which the OOXML validator flags. All bookmark ids are now renumbered uniquely; the merged file passes validation ("All validations PASSED").</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. What was missing — and what we needed</h2>
+<div class="tbl"><table>
+<tr><th>Missing from BEFORE_EDIT</th><th>Why it was needed</th><th>Status</th></tr>
+<tr><td>Appendix E — Prerequisites &amp; Setup</td><td>Appendix B promised a setup guide; an examiner/maintainer must be able to run the system.</td><td><span class="badge b-added">added</span></td></tr>
+<tr><td>Appendix F — Functionalities &amp; API Reference</td><td>Appendix C promised a technical overview; documents all 12 endpoints and the four running modes.</td><td><span class="badge b-added">added</span></td></tr>
+<tr><td>Appendix G — Common Problems &amp; Debugging</td><td>Maintenance evidence for §4.4 (mark-scheme: "maintenance issues").</td><td><span class="badge b-added">added</span></td></tr>
+<tr><td>Appendix H — Frontend screenshot</td><td>Evidence that Module 1 was built as designed.</td><td><span class="badge b-added">added</span></td></tr>
+<tr><td>Dashboard screenshot at the §3.5 📸 marker</td><td>Stage 4 needed a prototype screenshot.</td><td><span class="badge b-added">added</span> (Figure 3.1)</td></tr>
+<tr><td>Five endpoints in the §2.3.3 API contract</td><td>The backend exposes <code>/api/status</code>, <code>/api/quote</code>, <code>/api/portfolio/closed</code>, <code>/api/tickers</code>, <code>/api/history</code> — the design table did not list them.</td><td><span class="badge b-added">added</span></td></tr>
+<tr><td>Captions on all figures</td><td>"Annotated evidence".</td><td><span class="badge b-added">added</span></td></tr>
+<tr><td>Screenshots at the remaining 📸 markers (§3.2, §3.3, §3.4, §3.5 Add-form error, §3.6, §4.1 T1–T4)</td><td>Development &amp; Evaluation top bands need a screenshot per stage.</td><td><span class="badge b-todo">still needed</span></td></tr>
+<tr><td>Your own words at every ✍️ marker (§3.7 failed tests, §4.2 hand-checks, §4.3, §4.6)</td><td>Must be the candidate's own evidence and reflection.</td><td><span class="badge b-todo">still needed</span></td></tr>
+<tr><td>Login implementation</td><td>Design and build must agree — the write-up designed accounts that the code did not have.</td><td><span class="badge b-added">built</span> (section 7)</td></tr>
+</table></div>
+
+<!-- ============================================================ -->
+<h2>4. What we added</h2>
+
+<h3>4.1 §2.3.2 — In-program data structures (left exactly as you wrote it)</h3>
+<p>Your data-structures table (closes, dates, shortSMA/longSMA, …) and the <code class="k">Holding</code> class are kept unchanged. Note for the record: the table's text lives inside Word <i>content controls</i>, which some tools read as empty cells — it renders correctly in Word.</p>
+<div class="carbon"><div class="bar"><i></i><i></i><i></i><span>§2.3.2 — Holding class (unchanged)</span></div>
+<pre><code class="language-python">class Holding:
+    def __init__(self, id, ticker, quantity, avg_buy_price, purchase_date):
+        self.id = id; self.ticker = ticker; self.quantity = quantity
+        self.avg_buy_price = avg_buy_price; self.purchase_date = purchase_date
+
+    def invested(self):        return self.quantity * self.avg_buy_price
+    def value(self, ltp):      return self.quantity * ltp
+    def pnl(self, ltp):        return self.value(ltp) - self.invested()
+    def return_pct(self, ltp): return (self.pnl(ltp) / self.invested()) * 100</code></pre></div>
+
+<h3>4.2 §2.3.3 — Five API rows added</h3>
+<div class="tbl"><table>
+<tr><th>Method &amp; route</th><th>Purpose</th><th>Reply</th></tr>
+<tr><td>GET /api/status</td><td>Health check</td><td>{connected, instrumentCount, lastError}</td></tr>
+<tr><td>GET /api/quote/&lt;ticker&gt;</td><td>Latest traded price</td><td>{ticker, ltp}</td></tr>
+<tr><td>GET /api/portfolio/closed</td><td>Realised positions</td><td>[ {ticker, quantity, avgBuyPrice, sellPrice, closeDate} ]</td></tr>
+<tr><td>GET /api/tickers</td><td>Valid NSE symbols</td><td>[ tradingsymbol, … ]</td></tr>
+<tr><td>GET /api/history/&lt;ticker&gt;</td><td>Daily closes (Module 2 data)</td><td>[ {date, close} ]</td></tr>
+</table></div>
+
+<h3>4.3 Appendix E — Prerequisites &amp; Setup</h3>
+<p>Windows 10/11, Python 3.10+, <code class="k">uv</code>, a browser, internet; optional Zerodha Kite Connect credentials. Without Zerodha the app runs in degraded mode (prices = average cost, CSV backtest).</p>
+<div class="carbon"><div class="bar"><i></i><i></i><i></i><span>zerodha/zerodhaConfig.json — must be named exactly this</span></div>
+<pre><code class="language-json">{
+    "api_key":    "your_kite_api_key",
+    "api_secret": "your_kite_api_secret",
+    "user_id":    "your_zerodha_id",
+    "password":   "your_zerodha_password",
+    "totp":       "YOUR_TOTP_SECRET"
+}</code></pre></div>
+<div class="carbon"><div class="bar"><i></i><i></i><i></i><span>terminal — one-time setup, then daily start</span></div>
+<pre><code class="language-bash">cd backend
+setup.bat      # uv creates backend/.venv and installs requirements.txt
+seed.bat       # (live data only) download the NSE symbol list into portfolio.db
+start.bat      # front end on :8000, Flask API on :5000
+# health check:  http://localhost:5000/api/status</code></pre></div>
+
+<h3>4.4 Appendix F — Functionalities &amp; API Reference</h3>
+<p>Per-module feature lists (F.1–F.3), the four running modes — live / degraded / CSV fallback / mock (F.4) — and the full endpoint table (F.5, 12 routes).</p>
+
+<h3>4.5 Appendix G — Common Problems &amp; How to Debug Them</h3>
+<p>Ten-row troubleshooting table (mis-named config file, TOTP secret vs 6-digit code, expired daily token, unseeded instruments, port in use, missing <code class="k">uv</code>, sector "Other") plus a debugging toolkit (<code class="k">/api/status</code>, Flask traceback, DevTools Network tab, mock mode to isolate layers, SQLite viewer).</p>
+
+<h3>4.6 Appendix H + Figure 3.1 — dashboard screenshot</h3>
+<p>The same screenshot is now embedded twice: as Figure 3.1 evidence for Stage 4 in §3.5, and as Appendix H with a full caption.</p>
+
+<h3>4.7 Corrected pseudocode kept in §2.5(c)</h3>
+<div class="carbon"><div class="bar"><i></i><i></i><i></i><span>§2.5(c) — SMA-crossover backtest (unchanged; the prose now agrees with it)</span></div>
+<pre><code class="language-python">shortSMA = SMA(closes, shortWindow)
+longSMA  = SMA(closes, longWindow)
+cash = capital;  shares = 0;  position = 0
+for each day i (where both SMAs exist and the previous day's exist):
+    crossedUp   = shortSMA[i-1] &lt;= longSMA[i-1]  AND shortSMA[i] &gt; longSMA[i]
+    crossedDown = shortSMA[i-1] &gt;= longSMA[i-1]  AND shortSMA[i] &lt; longSMA[i]
+    if crossedUp and position == 0:              # BUY at today's close
+        shares = floor(cash / close[i]);  cash -= shares*close[i];  position = 1
+    else if crossedDown and position == 1:       # SELL at today's close
+        profit = (close[i] - buyPrice) * shares
+        cash += shares*close[i];  shares = 0;  position = 0
+    equityCurve[i] = cash + shares*close[i]
+
+# Benchmark: buy on day 0, hold to the end   ← now stated consistently in the prose
+benchShares  = floor(capital / close[0])
+benchmark[i] = (capital - benchShares*close[0]) + benchShares*close[i]
+beat = finalEquity &gt; finalBenchmark            # SC7 verdict</code></pre></div>
+
+<!-- ============================================================ -->
+<h2>5. Screenshots &amp; figures now in the document</h2>
+<figure>
+  <img src="img/dashboard.png" alt="Portfolio Tracker dashboard">
+  <figcaption><b>Figure 3.1 / H.1 — the finished dashboard</b> (mock mode). Hero value with sparkline, stat strip (volatility 16.8 %, Sharpe 1.42), allocation ribbon, holdings, sector donut, return bars, closed positions, collapsed backtest panel. <span class="badge b-added">added to §3.5 and Appendix H</span></figcaption>
+</figure>
+<figure class="dark">
+  <img src="img/backtest-flowchart.png" alt="Backtest route flowchart">
+  <figcaption><b>Figure 2.1 — /api/backtest flowchart</b>. Was already in §2.5 but uncaptioned. <span class="badge b-fixed">caption added</span></figcaption>
+</figure>
+<div class="grid2">
+  <figure class="dark">
+    <img src="img/wireframe-login.png" alt="Login wireframe">
+    <figcaption><b>Figure 2.2 — Login screen wireframe</b>. <span class="badge b-fixed">caption added</span> — remember: login is not yet built.</figcaption>
+  </figure>
+  <figure class="dark">
+    <img src="img/wireframe-portfolio.png" alt="Portfolio wireframe">
+    <figcaption><b>Figure 2.3 — Portfolio screen wireframe</b>. Ordering justified as progressive disclosure. <span class="badge b-fixed">caption added</span></figcaption>
+  </figure>
+</div>
+
+<!-- ============================================================ -->
+<h2>6. Still needed from you</h2>
+<p class="lead">These cannot be written on your behalf — they are your evidence and reflection.</p>
+<ul class="check">
+  <li>📸 §3.2 — terminal + browser showing a holding survives a restart (SC1).</li>
+  <li>📸 §3.3 — <code class="k">seed_instruments.py</code> output and a <code class="k">/api/quote/RELIANCE</code> response.</li>
+  <li>📸 §3.4 — stat strip with real volatility/Sharpe, plus the spreadsheet recomputation (SC3).</li>
+  <li>📸 §3.5 — the Add form showing a validation error (SC8).</li>
+  <li>📸 §3.6 — completed backtest (verdict, chart, trade log) and the two-row SMA trace (SC4).</li>
+  <li>✍️ §3.7 — your own test runs, including at least two failed tests and their fixes.</li>
+  <li>📸/✍️ §4.1 T1–T5 and §4.2 — replace "(verify)" after the SC2/SC3 hand-checks.</li>
+  <li>✍️ §4.3 and §4.6 — stakeholder quotes and your conclusion.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>7. Login — built end to end</h2>
+<p class="lead">Accounts were designed in the write-up but missing from the code. They are now implemented, tested against the running server, screenshotted, and documented in the .docx as §3.8 Stage 6, §1.7 FR12, the §2.1 tree, the §2.2 file table, the §2.3.3 API contract, §3.7 test rows, Appendices E/F/G and Appendix I.8.</p>
+
+<h3>What it does</h3>
+<div class="tbl"><table>
+<tr><th>Piece</th><th>Where</th><th>Behaviour</th></tr>
+<tr><td>Users table</td><td><code class="k">backend/database.py</code></td><td><code>users(id, username UNIQUE COLLATE NOCASE, password_hash, created_at)</code>; <code>holdings</code> and <code>closed_positions</code> gain <code>user_id</code>. <code>_migrate()</code> adds the column to an old <code>portfolio.db</code>; the first account to register inherits any rows saved before accounts existed.</td></tr>
+<tr><td>Passwords</td><td><code class="k">backend/auth.py</code></td><td>Salted PBKDF2-SHA256 via <code>werkzeug.security</code>. The password is never stored; login compares hashes.</td></tr>
+<tr><td>Session</td><td><code class="k">backend/auth.py</code></td><td>Signed, 7-day bearer token (<code>itsdangerous</code>). Secret auto-generated into <code>backend/.secret_key</code> (git-ignored → NFR5). <code>@require_login</code> guards every data route and sets <code>g.user_id</code>.</td></tr>
+<tr><td>Routes</td><td><code class="k">backend/app.py</code></td><td><code>POST /api/auth/register</code> (201), <code>POST /api/auth/login</code>, <code>GET /api/auth/me</code>, <code>POST /api/auth/change-password</code>. Same error for unknown user and wrong password, so nothing leaks.</td></tr>
+<tr><td>Sign-in screen</td><td><code class="k">frontend/auth.js</code>, <code class="k">index.html</code>, <code class="k">styles.css</code></td><td>Full-screen card with Sign in / Create account tabs (sliding ink), floating labels, show/hide password, strength meter, spinner → tick on success, shake on error, then a zoom-out hand-over to the dashboard. Three drifting colour fields and a gold equity curve that draws itself; everything respects <code>prefers-reduced-motion</code>.</td></tr>
+<tr><td>User chip &amp; menu</td><td>top bar</td><td>Avatar initial + username → <b>Change password</b> (modal with strength bar and animated tick) and <b>Sign out</b>.</td></tr>
+<tr><td>Token plumbing</td><td><code class="k">app.js</code>, <code class="k">backtest.js</code></td><td><code>AUTH.headers()</code> is attached to every request; any 401 brings the sign-in screen back. Mock mode (<code>useMock:true</code>) skips accounts entirely.</td></tr>
+</table></div>
+
+<div class="carbon"><div class="bar"><i></i><i></i><i></i><span>backend/auth.py — hash, sign, guard</span></div>
+<pre><code class="language-python">def hash_password(password: str) -&gt; str:
+    return generate_password_hash(password)          # pbkdf2:sha256 + random salt
+
+def issue_token(user_id: int) -&gt; str:
+    return _serializer.dumps({"uid": user_id})       # signed; loads(max_age=7 days)
+
+def require_login(view):
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        uid = current_user_id()                       # from "Authorization: Bearer ..."
+        if uid is None:
+            return jsonify({"error": "Please sign in.", "code": "unauthorized"}), 401
+        g.user_id = uid                               # every db call is scoped to this
+        return view(*args, **kwargs)
+    return wrapper</code></pre></div>
+
+<div class="carbon"><div class="bar"><i></i><i></i><i></i><span>frontend/auth.js — one event is all app.js needs</span></div>
+<pre><code class="language-javascript">const data = await post(mode === "register" ? "/auth/register" : "/auth/login", { username, password });
+AUTH.save(data.token, data.user);
+btn.classList.add("is-done");                       // spinner -&gt; tick
+await new Promise((r) =&gt; setTimeout(r, REDUCE ? 0 : 650));
+enter(data.user);                                   // zoom-out, reveal dashboard, then:
+document.dispatchEvent(new CustomEvent("auth:signedin", { detail: user }));</code></pre></div>
+
+<h3>Verified against the running server</h3>
+<div class="tbl"><table>
+<tr><th>Test</th><th>Result</th></tr>
+<tr><td>GET /api/holdings without a token</td><td>401 "Please sign in."</td></tr>
+<tr><td>Register with username <code>k!</code> / password <code>short</code></td><td>400 with the §2.4 rule in the message</td></tr>
+<tr><td>Register <code>krish</code>, then <code>KRISH</code> again</td><td>201, then 409 "already taken" (case-insensitive)</td></tr>
+<tr><td>Login with wrong password / forged token on /auth/me</td><td>401 / 401</td></tr>
+<tr><td>Add a holding as krish, list as a second user</td><td>krish sees 1 row; the other user sees []</td></tr>
+<tr><td>Change password with wrong current / correct current</td><td>400 / 200; old password then 401, new password 200</td></tr>
+<tr><td>Backtest with token (CSV fallback)</td><td>200 with equity curve and verdict</td></tr>
+</table></div>
+
+<h3>Screens</h3>
+<div class="grid2">
+  <figure><img src="img/login-login.png" alt="Sign-in screen"><figcaption><b>Sign in.</b> Floating label active, equity curve drawn, orbs drifting. <span class="badge b-added">Figure 3.2 in the .docx</span></figcaption></figure>
+  <figure><img src="img/login-register.png" alt="Create account"><figcaption><b>Create account.</b> Tab ink slid right, confirm field revealed, strength meter reads "Strong".</figcaption></figure>
+  <figure><img src="img/login-menu.png" alt="User menu"><figcaption><b>Signed in.</b> User chip with avatar initial; menu offers Change password and Sign out.</figcaption></figure>
+  <figure><img src="img/login-pw.png" alt="Change password"><figcaption><b>Change password.</b> Current password re-checked on the server; strength bar animates while typing. <span class="badge b-added">Figure 3.3 in the .docx</span></figcaption></figure>
+</div>
+
+<!-- ============================================================ -->
+<h2>8. Challenges while building it — and how they were resolved</h2>
+<p class="lead">Every item below is taken from the code as it exists in the repository (file and function named) or from the failed-test record in §3.3 of the write-up — nothing is invented. These have been added to the .docx as §3.8; add your own screenshots/commentary to each one you want to claim in §3.7.</p>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>1. Historical prices came back empty — wrong kind of token <span class="where">zerodha/Zerodha.py → backend/market_data.py, seed_instruments.py</span></h3>
+  <p><b>Problem.</b> The supplied <code class="k">Zerodha.get_instrument_tokens()</code> maps a symbol to its <code class="k">exchange_token</code>, but Kite's historical-data endpoint needs the <code class="k">instrument_token</code>. Every history request returned no candles.</p>
+  <p><b>Resolution.</b> Bypass the helper: <code class="k">fetch_nse_equity()</code> keeps <code class="k">instrument_token</code> from <code class="k">kite.instruments("NSE")</code>, <code class="k">seed_instruments.py</code> stores it in the <code class="k">instruments</code> table, and <code class="k">db.get_instrument_token(ticker)</code> supplies it to <code class="k">historical_daily()</code>.</p>
+  <div class="carbon"><div class="bar"><i></i><i></i><i></i><span>backend/market_data.py — fetch_nse_equity()</span></div>
+<pre><code class="language-python">everything = self.z.kite.instruments("NSE")
+equity = []
+for i in everything:
+    if i.get("instrument_type") == "EQ" and i.get("segment") == "NSE":
+        equity.append({
+            "instrument_token": i["instrument_token"],   # the id history needs
+            "tradingsymbol":    i["tradingsymbol"],
+            "name":             i.get("name", ""),
+        })</code></pre></div>
+</div>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>2. Zerodha's access token dies every morning, and login needs a 2-factor code <span class="where">zerodha/Zerodha.py: load_saved_token, save_token, login</span></h3>
+  <p><b>Problem.</b> Kite invalidates access tokens daily and every login needs a TOTP code — impractical to type by hand each run.</p>
+  <p><b>Resolution.</b> <code class="k">login()</code> first tries <code class="k">load_saved_token()</code>, which only accepts a token whose saved date is today; otherwise it generates the TOTP with <code class="k">pyotp.TOTP(secret).now()</code>, completes the login, and <code class="k">save_token()</code> caches the new token with the date in <code class="k">zerodhaAccessToken.json</code>. <code class="k">MarketData._ensure()</code> re-tries the login once before any API call.</p>
+  <div class="carbon"><div class="bar"><i></i><i></i><i></i><span>zerodha/Zerodha.py — daily token cache</span></div>
+<pre><code class="language-python">saved_date = dt.datetime.strptime(token_data['date'], '%Y-%m-%d').date()
+if saved_date == dt.date.today():
+    return token_data['access_token']       # reuse today's token
+...
+twofa_pin = pyotp.TOTP(self.credentials['totp']).now()   # automated 2FA
+access_token = self.kite.generate_session(request_token, api_secret=...)['access_token']
+self.save_token(access_token)</code></pre></div>
+</div>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>3. The app must still work with no Zerodha at all ("degraded mode") <span class="where">market_data.py, app.py: get_holdings / portfolio_summary / _load_prices</span></h3>
+  <p><b>Problem.</b> Kite Connect is a paid subscription and markets are shut most of the time; a demo or a marker's run cannot depend on it.</p>
+  <p><b>Resolution.</b> Every <code class="k">MarketData</code> method fails softly (returns <code class="k">{}</code>/<code class="k">[]</code> and records <code class="k">last_error</code>) instead of raising. Routes then fall back: holdings are valued at <code class="k">avg_buy_price</code>, risk shows 0, and <code class="k">_load_prices()</code> reads <code class="k">sample_data/&lt;TICKER&gt;.csv</code> for backtests. The front end has a further <code class="k">useMock</code> mode with no backend at all.</p>
+  <div class="carbon"><div class="bar"><i></i><i></i><i></i><span>backend/app.py — fallbacks</span></div>
+<pre><code class="language-python"># Fall back to the average buy price if we have no live quote, so the
+# portfolio still shows a sensible value in degraded mode.
+ltp = prices.get(r["ticker"], r["avg_buy_price"])
+
+# CSV fallback
+csv_prices = backtest.load_prices_from_csv(ticker)
+if csv_prices:
+    return csv_prices, "csv"
+return [], "none"</code></pre></div>
+</div>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>4. Login failed depending on which folder the server was started from <span class="where">backend/config.py, market_data.py: connect()</span></h3>
+  <p><b>Problem.</b> The Zerodha class defaults to relative paths (<code class="k">"zerodhaConfig.json"</code>), so it only found its credentials when run from the <code class="k">zerodha/</code> folder.</p>
+  <p><b>Resolution.</b> <code class="k">config.py</code> derives every path from <code class="k">__file__</code> (<code class="k">BACKEND_DIR</code>, <code class="k">ZERODHA_DIR</code>, <code class="k">SAMPLE_DIR</code>, <code class="k">DB_PATH</code>) and <code class="k">connect()</code> overrides <code class="k">config_path</code>/<code class="k">token_path</code> with absolute paths before logging in.</p>
+</div>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>5. <code class="k">/api/portfolio/summary</code> was slow <span class="where">app.py: _history_cache, _daily_closes()</span></h3>
+  <p><b>Problem.</b> Volatility and Sharpe need ~400 days of history for <i>every</i> holding, i.e. one historical API call per stock on every dashboard load.</p>
+  <p><b>Resolution.</b> A module-level dictionary <code class="k">_history_cache</code> keyed by ticker stores the <code class="k">{date: close}</code> series for the life of the process, so each stock's history is downloaded once per run.</p>
+</div>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>6. Two data sources, two date formats <span class="where">app.py: _fmt_date()</span></h3>
+  <p><b>Problem.</b> Zerodha candles carry <code class="k">datetime</code> objects; CSV rows carry strings. Mixing them broke sorting and the equity-curve dates.</p>
+  <p><b>Resolution.</b> One normaliser, <code class="k">_fmt_date()</code>, converts either to <code class="k">YYYY-MM-DD</code> before anything downstream sees it, so <code class="k">backtest.py</code> "does not care whether the prices came from Zerodha or from a CSV file".</p>
+</div>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>7. Portfolio-level risk needs one value series, but stocks have different trading histories <span class="where">app.py: portfolio_summary()</span></h3>
+  <p><b>Problem.</b> A newly listed stock has fewer candles; summing values across dates that only some stocks have would distort the series.</p>
+  <p><b>Resolution.</b> Take the <b>intersection</b> of the date sets of all holdings, require more than two common dates, then build <code class="k">value_series = Σ quantity × close</code> per common date and hand it to <code class="k">analysis.portfolio_risk()</code>.</p>
+  <div class="carbon"><div class="bar"><i></i><i></i><i></i><span>backend/app.py — portfolio_summary()</span></div>
+<pre><code class="language-python">closes_by_ticker = {r["ticker"]: _daily_closes(r["ticker"]) for r in rows}
+if all(closes_by_ticker.values()):
+    common_dates = set.intersection(*[set(c.keys()) for c in closes_by_ticker.values()])
+    if len(common_dates) &gt; 2:
+        value_series = [sum(r["quantity"] * closes_by_ticker[r["ticker"]][d] for r in rows)
+                        for d in sorted(common_dates)]
+        risk = analysis.portfolio_risk(value_series)</code></pre></div>
+</div>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>8. Symbol validation blocked everything before the list was seeded <span class="where">app.py: _validate_holding(), get_tickers()</span></h3>
+  <p><b>Problem.</b> "Must exist in <code class="k">instruments</code>" (SC8) rejected every ticker on a fresh install, because the table starts empty.</p>
+  <p><b>Resolution.</b> The check is only enforced when <code class="k">db.instruments_count() &gt; 0</code>; until then <code class="k">/api/tickers</code> serves the built-in <code class="k">SECTORS</code> list so the form still works.</p>
+</div>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>9. The NSE instrument list is huge and noisy <span class="where">market_data.py: fetch_nse_equity(); write-up §4.4</span></h3>
+  <p><b>Problem.</b> <code class="k">kite.instruments("NSE")</code> returns every instrument — bonds, ETFs, warrants — not just ~1,800 shares.</p>
+  <p><b>Resolution.</b> Filter to <code class="k">instrument_type == "EQ"</code> and <code class="k">segment == "NSE"</code>; the list is still larger than the true equity universe, which is recorded honestly as a maintenance item in §4.4.</p>
+</div>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>10. Front end and back end built at different times with different naming <span class="where">frontend/config.js, app.py: _holding_json()</span></h3>
+  <p><b>Problem.</b> The UI was built first on mock data (camelCase JSON); the database uses snake_case columns.</p>
+  <p><b>Resolution.</b> <code class="k">config.js</code> declares the REST contract up-front and the Flask routes "deliberately match" it; <code class="k">_holding_json()</code> / <code class="k">_closed_json()</code> translate rows to camelCase, so going live was a single flag: <code class="k">useMock: false</code>.</p>
+</div>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>11. Browser on port 8000 calling an API on port 5000 <span class="where">app.py: CORS(app)</span></h3>
+  <p><b>Problem.</b> Same-origin policy blocks <code class="k">fetch()</code> across ports, so every call failed in the browser even though the API answered in Postman.</p>
+  <p><b>Resolution.</b> <code class="k">flask_cors.CORS(app)</code> adds the <code class="k">Access-Control-Allow-Origin</code> headers.</p>
+</div>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>12. Detecting a crossover on the very first day both SMAs exist <span class="where">backtest.py: run_sma_backtest()</span></h3>
+  <p><b>Problem.</b> A cross is "yesterday short ≤ long, today short &gt; long" — it needs yesterday's SMAs too, which are <code class="k">None</code> at the start of the series. Equal SMAs also must not count as a cross, and a tiny capital can buy zero shares.</p>
+  <p><b>Resolution.</b> The loop only acts when <code class="k">i &gt; 0</code> and all four SMA values are non-<code class="k">None</code>; the comparisons are strict; and <code class="k">shares = int(cash // price)</code> is guarded by <code class="k">if shares &gt; 0</code>. The SMA itself uses a running sum so it is O(n), not O(n·window).</p>
+  <div class="carbon"><div class="bar"><i></i><i></i><i></i><span>backend/backtest.py — guards</span></div>
+<pre><code class="language-python">if s is not None and l is not None and i &gt; 0 \
+        and short_sma[i - 1] is not None and long_sma[i - 1] is not None:
+    crossed_up   = short_sma[i - 1] &lt;= long_sma[i - 1] and s &gt; l
+    crossed_down = short_sma[i - 1] &gt;= long_sma[i - 1] and s &lt; l
+    if crossed_up and position == 0:
+        shares = int(cash // price)      # whole shares only
+        if shares &gt; 0: ...</code></pre></div>
+</div>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>13. Kite has no sector field <span class="where">backend/sectors.py</span></h3>
+  <p><b>Problem.</b> The sector-mix donut needs a sector per stock; the API does not provide one.</p>
+  <p><b>Resolution.</b> A hand-maintained <code class="k">SECTORS</code> lookup table with <code class="k">sector_of()</code> defaulting to "Other" — documented as a limitation and a future-development item.</p>
+</div>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>14. Flask's debug reloader ran start-up twice <span class="where">app.py: app.run(..., use_reloader=False)</span></h3>
+  <p><b>Problem.</b> With <code class="k">debug=True</code>, Flask's reloader starts the module twice, so <code class="k">startup()</code> (DB init + Zerodha login) ran twice.</p>
+  <p><b>Resolution.</b> Keep <code class="k">debug=True</code> for tracebacks but pass <code class="k">use_reloader=False</code>, so start-up runs once.</p>
+</div>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>15. A login cookie from port 5000 is not sent by a page on port 8000 <span class="where">backend/auth.py, frontend/auth.js</span></h3>
+  <p><b>Problem.</b> The page and the API are different origins; a session cookie would need SameSite and CORS-credential exceptions and still fail on <code class="k">127.0.0.1</code> vs <code class="k">localhost</code>.</p>
+  <p><b>Resolution.</b> A signed, time-limited bearer token (<code class="k">itsdangerous</code>) returned by login and sent in the <code class="k">Authorization</code> header; plain CORS is enough and a restart does not log everyone out because the secret is persisted in <code class="k">backend/.secret_key</code>.</p>
+</div>
+
+<div class="issue" style="border-left-color:var(--teal)">
+  <h3>16. Adding accounts would orphan holdings saved before accounts existed <span class="where">database.py: _migrate(), create_user()</span></h3>
+  <p><b>Problem.</b> The existing <code class="k">holdings</code>/<code class="k">closed_positions</code> tables had no <code class="k">user_id</code>.</p>
+  <p><b>Resolution.</b> <code class="k">_migrate()</code> adds the column on start-up (<code class="k">PRAGMA table_info</code> + <code class="k">ALTER TABLE</code>); the first account that registers claims every row whose <code class="k">user_id IS NULL</code>.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>9. Important variables and their usage</h2>
+<p class="lead">Grouped by file. Added to the .docx as Appendix I.</p>
+
+<h3>backend/config.py — constants</h3>
+<div class="tbl"><table>
+<tr><th>Variable</th><th>Value</th><th>Used for</th></tr>
+<tr><td>BACKEND_DIR / PROJECT_DIR / ZERODHA_DIR / SAMPLE_DIR</td><td>derived from <code>__file__</code></td><td>absolute folders so the server runs from any working directory</td></tr>
+<tr><td>DB_PATH</td><td>backend/portfolio.db</td><td>the SQLite file opened by <code>database.get_connection()</code></td></tr>
+<tr><td>EXCHANGE / CURRENCY</td><td>"NSE" / "INR"</td><td>market identity; mirrored in config.js</td></tr>
+<tr><td>RISK_FREE_RATE</td><td>6.5 (% p.a., Indian 10-y G-Sec)</td><td>numerator of the Sharpe ratio</td></tr>
+<tr><td>TRADING_DAYS</td><td>252</td><td>annualising volatility (√252) and return (×252)</td></tr>
+<tr><td>HOST / PORT</td><td>localhost / 5000</td><td>where Flask listens; must match config.js <code>server</code></td></tr>
+</table></div>
+
+<h3>backend/market_data.py — MarketData</h3>
+<div class="tbl"><table>
+<tr><th>Variable</th><th>Type</th><th>Used for</th></tr>
+<tr><td>market</td><td>MarketData (singleton)</td><td>the one shared Zerodha wrapper every route uses</td></tr>
+<tr><td>self.z</td><td>Zerodha</td><td>the underlying Kite session (<code>self.z.kite</code>)</td></tr>
+<tr><td>self.connected</td><td>bool</td><td>whether login succeeded; drives degraded mode and <code>/api/status</code></td></tr>
+<tr><td>self.last_error</td><td>str | None</td><td>last failure message, surfaced by <code>/api/status</code> for debugging</td></tr>
+<tr><td>_ZERODHA_IMPORT_OK</td><td>bool</td><td>whether the Zerodha class/library could even be imported</td></tr>
+</table></div>
+
+<h3>backend/app.py — routes</h3>
+<div class="tbl"><table>
+<tr><th>Variable</th><th>Type</th><th>Used for</th></tr>
+<tr><td>_history_cache</td><td>dict {ticker: {date: close}}</td><td>in-memory cache so history is fetched once per stock per run</td></tr>
+<tr><td>prices</td><td>dict {ticker: ltp}</td><td>batched live prices from <code>_prices_for_tickers()</code></td></tr>
+<tr><td>ltp</td><td>float</td><td>price used to value a holding; falls back to <code>avg_buy_price</code></td></tr>
+<tr><td>quotes</td><td>dict {ticker: {last_price, prev_close, net_change}}</td><td>today's change</td></tr>
+<tr><td>total_mv / total_inv / day_change / prev_value</td><td>float accumulators</td><td>portfolio totals in <code>portfolio_summary()</code></td></tr>
+<tr><td>closes_by_ticker / common_dates / value_series</td><td>dict / set / list</td><td>building the portfolio value series for volatility &amp; Sharpe</td></tr>
+<tr><td>token</td><td>int | None</td><td><code>instrument_token</code> from the DB, needed by the history API</td></tr>
+<tr><td>source</td><td>"zerodha" | "csv" | "none"</td><td>tells the UI where backtest prices came from</td></tr>
+<tr><td>short_w / long_w / capital</td><td>int / int / float</td><td>validated backtest parameters (defaults 20 / 50 / 100000)</td></tr>
+</table></div>
+
+<h3>backend/backtest.py — run_sma_backtest()</h3>
+<div class="tbl"><table>
+<tr><th>Variable</th><th>Type</th><th>Used for</th></tr>
+<tr><td>dates / closes</td><td>list[str] / list[float]</td><td>parallel lists, oldest first; index i is one trading day</td></tr>
+<tr><td>short_sma / long_sma</td><td>list[float | None]</td><td>rolling means; <code>None</code> where history is too short</td></tr>
+<tr><td>running</td><td>float</td><td>running-sum accumulator inside <code>simple_moving_average()</code> (O(n))</td></tr>
+<tr><td>cash</td><td>float</td><td>uninvested money; starts at <code>capital</code></td></tr>
+<tr><td>shares</td><td>int</td><td>whole shares currently held (<code>int(cash // price)</code>)</td></tr>
+<tr><td>position</td><td>0 | 1</td><td>0 = in cash, 1 = holding; prevents double buys/sells</td></tr>
+<tr><td>buy_price</td><td>float</td><td>entry price of the open lot, for the SELL profit</td></tr>
+<tr><td>crossed_up / crossed_down</td><td>bool</td><td>the strict-inequality crossover tests (SC4)</td></tr>
+<tr><td>trades</td><td>list[dict]</td><td>the trade log handed to Module 3 (<code>analysis.trade_stats</code>)</td></tr>
+<tr><td>equity_curve / benchmark_curve</td><td>list[{date, value}]</td><td>strategy and buy-and-hold values per day (SC5)</td></tr>
+<tr><td>bench_shares / bench_cash</td><td>int / float</td><td>buy-and-hold lot bought at <code>closes[0]</code></td></tr>
+<tr><td>final_value / benchmark_final / beat</td><td>float / float / bool</td><td>the SC7 verdict</td></tr>
+</table></div>
+
+<h3>backend/analysis.py — risk maths</h3>
+<div class="tbl"><table>
+<tr><th>Variable</th><th>Type</th><th>Used for</th></tr>
+<tr><td>rets</td><td>list[float]</td><td>daily returns (today − yesterday) / yesterday</td></tr>
+<tr><td>daily_sd</td><td>float</td><td>sample standard deviation of returns → volatility</td></tr>
+<tr><td>mean_daily / annual_return / ann_vol</td><td>float</td><td>inputs to the Sharpe ratio</td></tr>
+<tr><td>peak / worst / drop</td><td>float</td><td>running peak and largest peak-to-trough fall → max drawdown</td></tr>
+<tr><td>completed / wins</td><td>list[dict]</td><td>SELL trades and the profitable subset → trade count, win rate, avg profit</td></tr>
+</table></div>
+
+<h3>zerodha/Zerodha.py — session</h3>
+<div class="tbl"><table>
+<tr><th>Variable</th><th>Type</th><th>Used for</th></tr>
+<tr><td>config_path / token_path</td><td>str</td><td>credentials file and cached-token file (overridden with absolute paths by <code>market_data</code>)</td></tr>
+<tr><td>credentials</td><td>dict</td><td>api_key, api_secret, user_id, password, totp secret</td></tr>
+<tr><td>kite</td><td>KiteConnect</td><td>the API client used for ltp/quote/historical_data/instruments</td></tr>
+<tr><td>saved_token / request_token / access_token</td><td>str</td><td>the login handshake; access_token is cached with today's date</td></tr>
+</table></div>
+
+<h3>frontend/config.js &amp; app.js &amp; backtest.js</h3>
+<div class="tbl"><table>
+<tr><th>Variable</th><th>Type</th><th>Used for</th></tr>
+<tr><td>APP_CONFIG.useMock</td><td>bool</td><td>true = built-in demo data, no backend; false = live API</td></tr>
+<tr><td>APP_CONFIG.server / baseUrl</td><td>object / getter</td><td>where the API lives (must match config.py HOST/PORT)</td></tr>
+<tr><td>APP_CONFIG.endpoints</td><td>object</td><td>the REST contract both sides agree on</td></tr>
+<tr><td>APP_CONFIG.market.locale / symbol</td><td>"en-IN" / "₹"</td><td>lakh/crore grouping and currency sign (NFR2)</td></tr>
+<tr><td>NSE_UNIVERSE</td><td>object {ticker: {name, sector, ltp}}</td><td>every known symbol with its live price; feeds <code>quote()</code>, <code>sectorOf()</code>, the dropdown</td></tr>
+<tr><td>state.holdings / state.closed / state.summary</td><td>arrays / object</td><td>the single UI state everything renders from</td></tr>
+<tr><td>_tickerSorted</td><td>array | null</td><td>cached sorted symbol list; set to null to invalidate after reload</td></tr>
+<tr><td>_heroAnimated</td><td>bool</td><td>run the count-up once (skipped under prefers-reduced-motion)</td></tr>
+<tr><td>tickersLoaded</td><td>bool</td><td>backtest form loads the symbol list only once</td></tr>
+<tr><td>payload {ticker, shortWindow, longWindow, capital}</td><td>object</td><td>the JSON body sent to <code>POST /api/backtest</code></td></tr>
+</table></div>
+
+<h3>backend/auth.py &amp; frontend/auth.js — accounts</h3>
+<div class="tbl"><table>
+<tr><th>Variable</th><th>Type</th><th>Used for</th></tr>
+<tr><td>SECRET_PATH / _serializer</td><td>str / URLSafeTimedSerializer</td><td>random signing secret in <code>backend/.secret_key</code> (git-ignored) and the token signer built from it</td></tr>
+<tr><td>TOKEN_MAX_AGE</td><td>int (7 days)</td><td>how long a login token stays valid</td></tr>
+<tr><td>USERNAME_RE / MIN_PASSWORD</td><td>regex / int</td><td>the §2.4 rules: 3–30 letters/digits/underscore; ≥ 8 characters</td></tr>
+<tr><td>g.user_id</td><td>int (request context)</td><td>set by <code>require_login()</code>; every database call is scoped to it</td></tr>
+<tr><td>password_hash</td><td>str column</td><td>pbkdf2:sha256 salted hash — the password itself is never stored</td></tr>
+<tr><td>window.AUTH</td><td>object</td><td><code>token()</code>, <code>user()</code>, <code>headers()</code>, <code>signedIn()</code>, <code>signOut()</code>, <code>expired()</code> — shared by app.js and backtest.js</td></tr>
+<tr><td>pt.token / pt.user</td><td>localStorage keys</td><td>the bearer token and the user shown in the chip</td></tr>
+<tr><td>mode</td><td>'login' | 'register'</td><td>which tab of the sign-in card is active</td></tr>
+</table></div>
+
+<h2>10. Files produced</h2>
+<ul class="files">
+  <li><code class="k">Project_Writeup_MERGED.docx</code> — the corrected, merged write-up (9,600 words, 5 figures, OOXML-validated).</li>
+  <li><code class="k">Project_Writeup_BEFORE_EDIT.docx</code> — untouched, kept as your backup.</li>
+  <li><code class="k">Project_Writeup.docx</code> — the old scaffold, untouched; safe to delete once you are happy with the merged file.</li>
+  <li><code class="k">writeup_review/index.html</code> + <code class="k">writeup_review/img/</code> — this page.</li>
+  <li><code class="k">writeup_review/build_writeup.py</code> — the script that produced the merged file from BEFORE_EDIT (re-runnable: <code class="k">python writeup_review/build_writeup.py Project_Writeup_MERGED.docx</code>, then refresh the TOC in Word).</li>
+  <li>Code added for accounts: <code class="k">backend/auth.py</code>, <code class="k">frontend/auth.js</code> (new); <code class="k">backend/database.py</code>, <code class="k">backend/app.py</code>, <code class="k">frontend/index.html</code>, <code class="k">frontend/styles.css</code>, <code class="k">frontend/app.js</code>, <code class="k">frontend/backtest.js</code>, <code class="k">frontend/config.js</code>, <code class="k">.gitignore</code> (modified).</li>
+</ul>
+
+</div>
+<script>if (window.hljs) hljs.highlightAll();</script>
+</body>
+</html>

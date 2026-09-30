@@ -16,6 +16,82 @@
 <body>
   <div class="grain" aria-hidden="true"></div>
 
+  <!-- ========================= SIGN IN / CREATE ACCOUNT ========================= -->
+  <div class="auth" id="authScreen" data-mode="login" hidden>
+    <div class="auth__bg" aria-hidden="true">
+      <span class="auth__orb auth__orb--a"></span>
+      <span class="auth__orb auth__orb--b"></span>
+      <span class="auth__orb auth__orb--c"></span>
+      <svg class="auth__curve" viewBox="0 0 1200 320" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="authFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#B8873B" stop-opacity=".22"/>
+            <stop offset="1" stop-color="#B8873B" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path class="auth__curve-fill" d="M0 250 C 120 215, 170 270, 300 225 S 470 130, 600 170 S 800 95, 900 125 S 1090 40, 1200 70 V320 H0 Z" fill="url(#authFill)"/>
+        <path class="auth__curve-line" d="M0 250 C 120 215, 170 270, 300 225 S 470 130, 600 170 S 800 95, 900 125 S 1090 40, 1200 70"/>
+        <circle class="auth__curve-dot" cx="1200" cy="70" r="5"/>
+      </svg>
+    </div>
+
+    <div class="auth__card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <div class="auth__brand">
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="34" height="34" fill="none">
+            <circle cx="16" cy="16" r="15" stroke="currentColor" stroke-width="1.4" opacity=".35"/>
+            <path d="M16 3v18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <circle cx="16" cy="24" r="3.1" fill="currentColor"/>
+            <path d="M7 16h18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".5"/>
+          </svg>
+        </span>
+        <div>
+          <div class="auth__brand-name">Portfolio Tracker</div>
+          <div class="auth__brand-tag">A steady view of what you own</div>
+        </div>
+      </div>
+
+      <div class="auth__tabs" role="tablist" aria-label="Sign in or create an account">
+        <button type="button" class="auth__tab is-active" role="tab" aria-selected="true" data-mode="login">Sign in</button>
+        <button type="button" class="auth__tab" role="tab" aria-selected="false" data-mode="register">Create account</button>
+        <span class="auth__ink" aria-hidden="true"></span>
+      </div>
+
+      <h1 class="auth__title" id="authTitle">Welcome back</h1>
+      <p class="auth__sub" id="authSub">Sign in to see your portfolio.</p>
+
+      <form id="authForm" novalidate>
+        <div class="field fl">
+          <input id="aUser" name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder=" " maxlength="30">
+          <label for="aUser">Username</label>
+          <p class="err" data-err="username"></p>
+        </div>
+        <div class="field fl fl--pw">
+          <input id="aPass" name="password" type="password" autocomplete="current-password" placeholder=" ">
+          <label for="aPass">Password</label>
+          <button type="button" class="eye" id="aEye" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path class="eye-open" d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle class="eye-open" cx="12" cy="12" r="3"/><path class="eye-slash" d="M4 4l16 16"/></svg></button>
+          <p class="err" data-err="password"></p>
+        </div>
+        <div class="field fl" id="aConfirmWrap" hidden>
+          <input id="aConfirm" name="confirm" type="password" autocomplete="new-password" placeholder=" ">
+          <label for="aConfirm">Confirm password</label>
+          <p class="err" data-err="confirm"></p>
+        </div>
+        <div class="pw-meter" id="aMeter" data-level="0" hidden><span></span><b></b></div>
+
+        <p class="auth__error" id="authError" role="alert" hidden></p>
+
+        <button type="submit" class="btn btn--primary auth__submit" id="authSubmit">
+          <span class="auth__submit-label">Sign in</span>
+          <span class="auth__spinner" aria-hidden="true"></span>
+          <svg class="auth__tick" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </button>
+      </form>
+
+      <p class="auth__foot">Your portfolio is stored only on this machine · passwords are hashed, never saved.</p>
+    </div>
+  </div>
+
   <!-- ========================= TOP BAR ========================= -->
   <header class="topbar">
     <div class="brand">
@@ -37,6 +113,25 @@
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
         Add holding
       </button>
+
+      <!-- signed-in user chip + menu (filled by auth.js) -->
+      <div class="user" id="userMenu" hidden>
+        <button class="user__chip" id="userChip" aria-haspopup="menu" aria-expanded="false">
+          <span class="user__avatar" id="userAvatar">?</span>
+          <span class="user__name" id="userName"></span>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="user__menu" id="userDropdown" role="menu" hidden>
+          <button type="button" role="menuitem" id="pwBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            Change password
+          </button>
+          <button type="button" role="menuitem" id="signOutBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg>
+            Sign out
+          </button>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -378,7 +473,57 @@
     </div>
   </div>
 
+  <!-- ========================= CHANGE PASSWORD MODAL ========================= -->
+  <div class="modal" id="pwModal" hidden>
+    <div class="modal__scrim" data-close-pw></div>
+    <div class="modal__card modal__card--sm" role="dialog" aria-modal="true" aria-labelledby="pwTitle">
+      <div class="modal__head">
+        <div>
+          <h3 class="modal__title" id="pwTitle">Change password</h3>
+          <p class="modal__sub">Choose something at least 8 characters long.</p>
+        </div>
+        <button class="icon-btn" data-close-pw aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="pwForm" novalidate>
+        <div class="field">
+          <label for="pCurrent">Current password</label>
+          <input id="pCurrent" type="password" autocomplete="current-password">
+          <p class="err" data-err="current"></p>
+        </div>
+        <div class="field">
+          <label for="pNew">New password</label>
+          <input id="pNew" type="password" autocomplete="new-password">
+          <div class="pw-meter" id="pMeter" data-level="0"><span></span><b></b></div>
+          <p class="err" data-err="new"></p>
+        </div>
+        <div class="field">
+          <label for="pConfirm">Confirm new password</label>
+          <input id="pConfirm" type="password" autocomplete="new-password">
+          <p class="err" data-err="confirm"></p>
+        </div>
+        <div class="modal__actions">
+          <button type="button" class="btn btn--ghost" data-close-pw>Cancel</button>
+          <button type="submit" class="btn btn--primary auth__submit" id="pwSubmit">
+            <span class="auth__submit-label">Update password</span>
+            <span class="auth__spinner" aria-hidden="true"></span>
+          </button>
+        </div>
+      </form>
+      <div class="pw-done" id="pwDone" hidden>
+        <svg viewBox="0 0 48 48" width="52" height="52" fill="none" aria-hidden="true">
+          <circle class="pw-done__ring" cx="24" cy="24" r="21" stroke="currentColor" stroke-width="2"/>
+          <path class="pw-done__tick" d="M14 25l7 7 13-14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p>Password updated</p>
+      </div>
+    </div>
+  </div>
+
   <script src="config.js"></script>
+  <script src="auth.js"></script>
   <script src="app.js"></script>
   <script src="backtest.js"></script>
 </body>

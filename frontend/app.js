@@ -90,9 +90,12 @@
   const API = {
     ep: CFG.endpoints,
     async _fetch(path, opts) {
-      const res = await fetch(CFG.baseUrl + path,
-        Object.assign({ headers: { "Content-Type": "application/json" } }, opts));
+      // Every request carries the login token (auth.js); a 401 means it is
+      // missing or expired, so the sign-in screen comes back.
+      const headers = Object.assign({ "Content-Type": "application/json" }, window.AUTH ? AUTH.headers() : {});
+      const res = await fetch(CFG.baseUrl + path, Object.assign({ headers }, opts));
       const body = await res.json().catch(() => ({}));
+      if (res.status === 401 && window.AUTH) { AUTH.expired(); throw new Error(body.error || "Please sign in."); }
       if (!res.ok) throw new Error(body.error || ("Request failed (" + res.status + ")"));
       return body;
     },
@@ -770,8 +773,9 @@
       if (!$("#sellModal").hidden) hideModal("#sellModal");
     });
 
-    // Load data (mock: already in `state`; live: fetched from the backend) and render.
-    loadData();
+    // Load data once auth.js says we are signed in (mock mode fires this
+    // immediately; live mode after the token is verified or a login succeeds).
+    document.addEventListener("auth:signedin", () => loadData());
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

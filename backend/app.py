@@ -11,9 +11,10 @@ Run it with:   python app.py
 """
 import datetime as dt
 
-from flask import Flask, jsonify, request
+from flask import Flask, g, jsonify, request
 from flask_cors import CORS
 
+import auth
 import database as db
 from market_data import market
 from sectors import sector_of
@@ -22,7 +23,8 @@ import backtest
 from config import HOST, PORT, RISK_FREE_RATE, TRADING_DAYS
 
 app = Flask(__name__)
-CORS(app)  # let the browser (opened from a file / different port) call us
+CORS(app)  # let the browser (opened from a file / different port) call us.
+           # Login uses a bearer token, not a cookie, so plain CORS is enough.
 
 # Small in-memory cache of historical closes so /portfolio/summary is not slow.
 _history_cache: dict = {}
@@ -103,16 +105,78 @@ def status():
     return jsonify({
         "connected": market.connected,
         "instruments": db.instruments_count(),
+        "users": db.users_count(),
         "lastError": market.last_error,
     })
+
+
+# ---------------------------------------------------------------------------
+# Accounts / login  (sub-problem 1.7, FR12)
+# ---------------------------------------------------------------------------
+def _user_json(user: dict) -> dict:
+    return {"id": user["id"], "username": user["username"], "createdAt": user["created_at"]}
+
+
+@app.post("/api/auth/register")
+def register():
+    data = request.get_json(silent=True) or {}
+    username = str(data.get("username", "")).strip()
+    password = data.get("password")
+    err = auth.validate_username(username) or auth.validate_password(password)
+    if err:
+        return jsonify({"error": err}), 400
+    if db.get_user_by_username(username):
+        return jsonify({"error": "That username is already taken."}), 409
+    user = db.create_user(username, auth.hash_password(password), _today())
+    return jsonify({"token": auth.issue_token(user["id"]), "user": _user_json(user)}), 201
+
+
+@app.post("/api/auth/login")
+def login():
+    data = request.get_json(silent=True) or {}
+    username = str(data.get("username", "")).strip()
+    password = data.get("password") or ""
+    user = db.get_user_by_username(username)
+    # Same message for unknown user and wrong password: don't reveal which.
+    if not user or not auth.verify_password(user["password_hash"], password):
+        return jsonify({"error": "Wrong username or password."}), 401
+    return jsonify({"token": auth.issue_token(user["id"]), "user": _user_json(user)})
+
+
+@app.get("/api/auth/me")
+@auth.require_login
+def me():
+    user = db.get_user(g.user_id)
+    if not user:
+        return jsonify({"error": "Please sign in.", "code": "unauthorized"}), 401
+    return jsonify(_user_json(user))
+
+
+@app.post("/api/auth/change-password")
+@auth.require_login
+def change_password():
+    data = request.get_json(silent=True) or {}
+    current = data.get("currentPassword") or ""
+    new = data.get("newPassword")
+    user = db.get_user(g.user_id)
+    if not user or not auth.verify_password(user["password_hash"], current):
+        return jsonify({"error": "Current password is incorrect."}), 400
+    err = auth.validate_password(new)
+    if err:
+        return jsonify({"error": err}), 400
+    if new == current:
+        return jsonify({"error": "New password must be different from the current one."}), 400
+    db.update_password(g.user_id, auth.hash_password(new))
+    return jsonify({"ok": True})
 
 
 # ---------------------------------------------------------------------------
 # Holdings
 # ---------------------------------------------------------------------------
 @app.get("/api/holdings")
+@auth.require_login
 def get_holdings():
-    rows = db.get_holdings()
+    rows = db.get_holdings(g.user_id)
     prices = _prices_for_tickers([r["ticker"] for r in rows])
     instruments = {i["tradingsymbol"]: i["name"] for i in db.get_all_instruments()}
     out = []
@@ -125,6 +189,7 @@ def get_holdings():
 
 
 @app.post("/api/holdings")
+@auth.require_login
 def add_holding():
     data = request.get_json(silent=True) or {}
     ticker = str(data.get("ticker", "")).upper().strip()
@@ -136,14 +201,15 @@ def add_holding():
     if err:
         return jsonify({"error": err}), 400
 
-    row = db.add_holding(ticker, int(quantity), float(avg), date)
+    row = db.add_holding(g.user_id, ticker, int(quantity), float(avg), date)
     ltp = _prices_for_tickers([ticker]).get(ticker, float(avg))
     return jsonify(_holding_json(row, ltp, _name_of(ticker))), 201
 
 
 @app.put("/api/holdings/<int:holding_id>")
+@auth.require_login
 def edit_holding(holding_id):
-    existing = db.get_holding(holding_id)
+    existing = db.get_holding(holding_id, g.user_id)
     if not existing:
         return jsonify({"error": "Holding not found."}), 404
     data = request.get_json(silent=True) or {}
@@ -155,22 +221,24 @@ def edit_holding(holding_id):
     if err:
         return jsonify({"error": err}), 400
 
-    row = db.update_holding(holding_id, int(quantity), float(avg), date)
+    row = db.update_holding(holding_id, g.user_id, int(quantity), float(avg), date)
     ltp = _prices_for_tickers([row["ticker"]]).get(row["ticker"], float(avg))
     return jsonify(_holding_json(row, ltp, _name_of(row["ticker"])))
 
 
 @app.delete("/api/holdings/<int:holding_id>")
+@auth.require_login
 def remove_holding(holding_id):
-    if not db.get_holding(holding_id):
+    if not db.get_holding(holding_id, g.user_id):
         return jsonify({"error": "Holding not found."}), 404
-    db.delete_holding(holding_id)
+    db.delete_holding(holding_id, g.user_id)
     return jsonify({"ok": True})
 
 
 @app.post("/api/holdings/<int:holding_id>/sell")
+@auth.require_login
 def sell_holding(holding_id):
-    holding = db.get_holding(holding_id)
+    holding = db.get_holding(holding_id, g.user_id)
     if not holding:
         return jsonify({"error": "Holding not found."}), 404
 
@@ -191,15 +259,15 @@ def sell_holding(holding_id):
         return jsonify({"error": "Sell price must be greater than 0."}), 400
 
     # book the sale
-    closed = db.add_closed(holding["ticker"], quantity, holding["avg_buy_price"], sell_price, _today())
+    closed = db.add_closed(g.user_id, holding["ticker"], quantity, holding["avg_buy_price"], sell_price, _today())
 
     # reduce or remove the open position
     remaining = holding["quantity"] - quantity
     if remaining <= 0:
-        db.delete_holding(holding_id)
+        db.delete_holding(holding_id, g.user_id)
         updated = None
     else:
-        updated = db.update_holding(holding_id, remaining, holding["avg_buy_price"], holding["purchase_date"])
+        updated = db.update_holding(holding_id, g.user_id, remaining, holding["avg_buy_price"], holding["purchase_date"])
 
     return jsonify({"closed": _closed_json(closed),
                     "holding": None if updated is None else _holding_json(updated, holding["avg_buy_price"], _name_of(holding["ticker"]))})
@@ -233,6 +301,7 @@ def _validate_holding(ticker, quantity, avg, date, check_ticker=True) -> str | N
 # Quotes
 # ---------------------------------------------------------------------------
 @app.get("/api/quote/<ticker>")
+@auth.require_login
 def get_quote(ticker):
     ltp = market.get_ltp(ticker)
     return jsonify({"ticker": ticker.upper(), "ltp": round(ltp, 2)})
@@ -242,8 +311,9 @@ def get_quote(ticker):
 # Portfolio summary (totals + volatility + Sharpe + today's change)
 # ---------------------------------------------------------------------------
 @app.get("/api/portfolio/summary")
+@auth.require_login
 def portfolio_summary():
-    rows = db.get_holdings()
+    rows = db.get_holdings(g.user_id)
     if not rows:
         return jsonify({"annualisedVolatility": 0, "sharpeRatio": 0,
                         "dayChange": 0, "dayChangePct": 0,
@@ -287,8 +357,9 @@ def portfolio_summary():
 
 
 @app.get("/api/portfolio/closed")
+@auth.require_login
 def portfolio_closed():
-    return jsonify([_closed_json(r) for r in db.get_closed()])
+    return jsonify([_closed_json(r) for r in db.get_closed(g.user_id)])
 
 
 # ---------------------------------------------------------------------------
@@ -312,6 +383,7 @@ def get_tickers():
 # Historical daily prices  (Module 2 data)
 # ---------------------------------------------------------------------------
 @app.get("/api/history/<ticker>")
+@auth.require_login
 def get_history(ticker):
     ticker = ticker.upper()
     from_d = request.args.get("from")
@@ -327,6 +399,7 @@ def get_history(ticker):
 # Backtest (Module 2)
 # ---------------------------------------------------------------------------
 @app.post("/api/backtest")
+@auth.require_login
 def run_backtest():
     data = request.get_json(silent=True) or {}
     ticker = str(data.get("ticker", "")).upper().strip()

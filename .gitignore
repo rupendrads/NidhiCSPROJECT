@@ -11,6 +11,8 @@ zerodha/*Config*.json
 
 # ===== database (personal data, regenerated locally) =====
 backend/portfolio.db
+# login token signing secret (auto-created on first run)
+backend/.secret_key
 
 # ===== Python =====
 __pycache__/

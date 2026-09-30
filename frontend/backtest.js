@@ -89,7 +89,7 @@
                 "COALINDIA","TATASTEEL","JSWSTEEL"];
     if (!CFG.useMock) {
       try {
-        const res = await fetch(CFG.baseUrl + CFG.endpoints.tickers);
+        const res = await fetch(CFG.baseUrl + CFG.endpoints.tickers, { headers: window.AUTH ? AUTH.headers() : {} });
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length) list = data.map((t) => t.ticker);
@@ -145,10 +145,11 @@
     try {
       const res = await fetch(CFG.baseUrl + CFG.endpoints.backtest, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: Object.assign({ "Content-Type": "application/json" }, window.AUTH ? AUTH.headers() : {}),
         body: JSON.stringify(payload)
       });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 401 && window.AUTH) { AUTH.expired(); return; }
       if (!res.ok) throw new Error(data.error || ("Request failed (" + res.status + ")"));
       renderResults(data, payload.ticker);
     } catch (err) {
